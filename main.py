@@ -25,13 +25,5 @@ while True:
     imp = get_imperative()
     route_imperative(imp, context)
 
-    # inp = input("> ").lower()
-    # try:
-    #     loc = map[inp]
-    #     player.current_loc = loc
-    # except Exception as e:
-    #     continue
-    #
-    # print(player.current_loc.des)
 
     print("\n")

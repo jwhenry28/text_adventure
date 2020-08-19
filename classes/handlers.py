@@ -110,6 +110,16 @@ def drop_handler(imp, context):
         print("You see no such thing.")
 
 
+def open_handler(imp, context):
+    # Make sure there is an obstacle
+    curr_loc = context.map[context.player.current_loc]
+    if curr_loc.find_obstacle(imp.noun):
+        noun = curr_loc.active_ob.name
+        curr_loc.ob_funcs[noun](curr_loc)
+    else:
+        print("You see no such thing.")
+
+
 def route_imperative(imp, context):
     # Movement
     if imp.verb == 'go' or imp.verb == 'move' or imp.verb == 'run':
@@ -120,4 +130,7 @@ def route_imperative(imp, context):
     # Dropping things
     elif imp.verb == 'drop':
         drop_handler(imp, context)
+    # Opening obstacles
+    elif imp.verb == 'open':
+        open_handler(imp, context)
 

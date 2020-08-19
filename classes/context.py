@@ -1,5 +1,5 @@
 from classes.player import Player
-from classes.locations import Location
+from classes.locations import Location, Obstacle
 from classes.inventory import Item, Inventory
 
 
@@ -11,26 +11,42 @@ class Context:
         self.score = 0
 
 
+def wfarmhouse_door_func(self):
+    self.e = "kitchen"
+
+
 def gen_context():
+    # Items and inventories
     axe = Item("ax", "A gleaming wood ax", 20)
     weight = Item("weight", "A very heavy weight", 100)
     barn_inv = Inventory(100000, [axe, weight])
 
+    # Obstacles
+    wfarmhouse_door = Obstacle("farmhouse west door", "A normal looking door, painted black.", ["open", "push", "enter"], ["door"])
+
+    # Locations
     cornfield1 = Location("cornfield south", "Cornfield South", Inventory(100000),
-                     "This is a musty cornfield, full of dusty dead stalks. A farm lies to the south.",
-                     s="silos")
+                     "This is a musty cornfield, full of dusty dead stalks. It continues to the north. A farm lies to the south.",
+                     n="cornfield north", s="silos")
+    cornfield2 = Location("cornfield north", "Cornfield North", Inventory(100000),
+                          "This is a musty cornfield, full of dusty dead stalks. It continues to the south. A small river lies to the north.",
+                          n="river cross", s="cornfield south")
+    river = Location("river cross", "River Crossing", Inventory(100000),
+                     "This is a river, swift and strong. The path runs through the river northwest to south. It looks shallow enough to wade through, but the current would sweep you away.",
+                     s="river cross", nw="homestead")
     silos = Location("silos", "Twin Silos", Inventory(100000),
-                     "Two massive silos stand defiant against the surrounding terrain. A small farmhouse to the south is nearly obscured by their massive stature. A deteriorating ladder is bolted to the side of one, if only there were a better way up...",
+                     "Two massive silos stand defiant against the surrounding terrain. A large barn sits to the west. A small farmhouse to the south is nearly obscured by their massive stature. A deteriorating ladder is bolted to the side of one, if only there were a better way up...",
                      n="cornfield south", s="west farmhouse", w="barn", se="front yard")
     barn = Location("barn", "Old Barn", barn_inv,
-                    "This is a dusty old barn full of disintegrating hay and rusty tools. A cornfield lies to the east. There is a workshed to the immediate south.",
-                    s="workshop", e="silos")
+                    "This is a dusty old barn full of disintegrating hay and rusty tools. A cornfield lies to the east. There is a workshed to the immediate south. You can hear a chorus of frogs to the northwest.",
+                    s="workshop", e="silos", nw="frog pond")
     workshop = Location("workshop", "Workshop", Inventory(100000),
                         "This is a moderately sized workshop. Dozens of alien tools are hung neatly from the walls, although you recognize none of them. There are doors on the north and east walls of the workshop.",
                         n="barn", e="west farmhouse")
     wfarmhouse = Location("west farmhouse", "West of Farmhouse", Inventory(100000),
                          "You are facing the west side of a beautiful farmhouse. You can see a door facing you. The large silos lies to the north. A gravel path runs to the south east. A large farm building stands steadfast to the west.",
-                         n="silos", s="south farmhouse", e="kitchen", w="workshop", sw="firepits")
+                         n="silos", s="south farmhouse", e=None, w="workshop", sw="firepits",
+                          obstacles={wfarmhouse_door.name: wfarmhouse_door}, ob_funcs={wfarmhouse_door.name: wfarmhouse_door_func})
     sfarmhouse = Location("south farmhouse", "South of Farmhouse", Inventory(100000),
                           "You are facing the south side of a beautiful farmhouse. A small toolshed is next to a large gas tanker, but they both appear to be empty.",
                           s="hay field", w="west farmhouse", e="front yard")
@@ -94,6 +110,34 @@ def gen_context():
     tower = Location("lone tower", "Lonesome Tower", Inventory(100000),
                      "This is a large tower with a turret roof. The tower has a single door and several windows. The forest is very dense here. Dirt tracks run off to the east.",
                      e="tire tracks2")
+    homestead = Location("homestead", "Homestead", Inventory(100000),
+                         "This is a derelict homestead. At one point it time, it may have been a comfortable frontier home. Now it is barely recognizible. The path continues to the southwest and to the southeast.",
+                         se="river cross", sw="water well")
+    well = Location("water well", "Water Well", Inventory(100000),
+                    "This is a natural wellspring. Several wild cows drinking at the spring block your way to the water. The path continues to the northeast and northwest.",
+                    ne="river cross", nw="turkey blind")
+    turkey = Location("turkey blind", "Turkey Blind", Inventory(100000),
+                      "This is an old turkey blind underneath a large oak. Stacks of logs neatly enclose a small camoflauge tent. The path continues to the southwest and southeast.",
+                      se="water well", sw="forest path1")
+    forestpath1 = Location("forest path1", "Forest Path", Inventory(100000),
+                          "This is a well-used path through the forest. A variety of animal tracks are imprinted in the dirt. The path continues to the south and northeast.",
+                          s="strange circle", ne="turkey blind")
+    circle = Location("strange circle", "Strange Circle", Inventory(100000),
+                      "You are in a forest clearing that can only be described as odd. A circle of worn monolithic stones stand silent vigil in the center of the clearing. The grass is slightly browned in a way that creates intricate patterns around the stones. Paths branch off to the north, south, and east.",
+                      n="forest path1", s="forest path2", e="large oak")
+    oak = Location("large oak", "Large Oak", Inventory(100000),
+                   "This is an massive white oak. Its branches are easily several feet thick and its root snake out dozens of meters in all directions. You can see a small clearing to the west. A path cuts through the forest to the south. You can hear a chorus of frogs to the southeast.",
+                   w="strange circle", s="forest path3", se="frog pond")
+    forestpath2 = Location("forest path2", "Forest Path", Inventory(100000),
+                           "This is a well-used path through the forest. The trees around you are particularly thick here. The path curves from the north to the east.",
+                           n="strange circle", e="forest path3")
+    forestpath3 = Location("forest path3", "Forest Path", Inventory(100000),
+                           "This is a well-used path through the forest. The trees around you are beginning to thin out a bit. The path curves from the west to the north, but you can probably make your own way to the east.",
+                           n="large oak", e="frog pond", w="forest path2")
+    frogpond = Location("frog pond", "Frog Pond", Inventory(100000),
+                        "This is a large, scummy pond. The croaking of the frogs is nearly deafening here. There must be hundreds hiding in the undergrowth. Thick cattails and other marsh plants grow around the pond's edge. A path continues to the west and to the southeast",
+                        w="forest path3", se="barn")
+
 
 
     map = {"cornfield south": cornfield1, "barn": barn, "west farmhouse": wfarmhouse, "silos": silos, "kitchen": kitchen,
@@ -101,7 +145,10 @@ def gen_context():
            "creek4": creek4, "lagoon": lagoon, "dock": dock, "cave": cave, "flooded passage": flooded_passage,
            "grotto": grotto, "south farmhouse": sfarmhouse, "hay field": hayfield, "graveyard": graveyard, "tire tracks1": tires1,
            "tire tracks2": tires2, "lone tower": tower, "vineyard east": vineyarde, "vineyard west": vineyardw,
-           "firepits": firepits, "workshop": workshop}
+           "firepits": firepits, "workshop": workshop, "cornfield north": cornfield2, "river cross": river,
+           "homestead": homestead, "water well": well, "turkey blind": turkey, "forest path1":  forestpath1,
+           "strange circle": circle, "large oak": oak, "forest path2": forestpath2, "forest path3": forestpath3,
+           "frog pond": frogpond}
 
     player = Player()
 
