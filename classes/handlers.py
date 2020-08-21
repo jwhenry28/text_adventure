@@ -7,58 +7,24 @@ def move_handler(imp, context):
     curr_loc = context.map[context.player.current_loc]
     direction = imp.noun
 
-    if direction == 'north' or direction == 'n':
-        if curr_loc.n == '':
-            print("You can't go that way!")
-        else:
-            context.player.current_loc = curr_loc.n
-    elif direction == 'south' or direction == 's':
-        if curr_loc.s == '':
-            print("You can't go that way!")
-        else:
-            context.player.current_loc = curr_loc.s
-    elif direction == 'east' or direction == 'e':
-        if curr_loc.e == '':
-            print("You can't go that way!")
-        else:
-            context.player.current_loc = curr_loc.e
-    elif direction == 'west' or direction == 'w':
-        if curr_loc.w == '':
-            print("You can't go that way!")
-        else:
-            context.player.current_loc = curr_loc.w
-    elif direction == 'northeast' or direction == 'ne':
-        if curr_loc.ne == '':
-            print("You can't go that way!")
-        else:
-            context.player.current_loc = curr_loc.ne
-    elif direction == 'northwest' or direction == 'nw':
-        if curr_loc.nw == '':
-            print("You can't go that way!")
-        else:
-            context.player.current_loc = curr_loc.nw
-    elif direction == 'southeast' or direction == 'se':
-        if curr_loc.se == '':
-            print("You can't go that way!")
-        else:
-            context.player.current_loc = curr_loc.se
-    elif direction == 'southwest' or direction == 'sw':
-        if curr_loc.sw == '':
-            print("You can't go that way!")
-        else:
-            context.player.current_loc = curr_loc.sw
-    elif direction == 'up':
-        if curr_loc.up == '':
-            print("You can't go that way!")
-        else:
-            context.player.current_loc = curr_loc.up
-    elif direction == 'down':
-        if curr_loc.down == '':
-            print("You can't go that way!")
-        else:
-            context.player.current_loc = curr_loc.down
+    dir_map = {'north': curr_loc.n, 'n': curr_loc.n, 'south': curr_loc.s, 's': curr_loc.s,
+               'east': curr_loc.e, 'e': curr_loc.e, 'west': curr_loc.w, 'w': curr_loc.w,
+               'northeast': curr_loc.ne, 'ne': curr_loc.ne, 'northwest': curr_loc.nw, 'nw': curr_loc.nw,
+               'southeast': curr_loc.se, 'se': curr_loc.se, 'southwest': curr_loc.sw, 'sw': curr_loc.sw,
+               'up': curr_loc.up, 'down': curr_loc.down}
+
+    try:
+        new_loc = dir_map[direction]
+    except:
+        print("I don't recognise that direction.")
+        return
+
+    if new_loc == '':
+        print("You can't go that way.")
     else:
-        print("That's not a direction I recognise.")
+        context.player.current_loc = new_loc
+
+
 
 
 # Adds an item to the player's inventory from the current location
