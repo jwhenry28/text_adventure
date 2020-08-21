@@ -57,6 +57,7 @@ def get_imperative():
 
         # Add "the" after proposition if one exists (ik this is shitty, but parsing is tough)
         thrown = False
+        direction_parsing = False
         for i in range(0, len(words)):
             if words[i] == 'with' or words[i] == 'to':
                 try:
@@ -67,9 +68,20 @@ def get_imperative():
                     print(words[i], "what?")
                     thrown = True
             elif words[i] in directions:
-                words.insert(i, "go")
-                if words[i+1] != "the":
-                    words.insert(i+1, "the")
+                # This should only occur once; otherwise this is a nonsensical sentence
+                if not direction_parsing:
+                    direction_parsing = True
+                else:
+                    break
+
+                if "go" not in words:
+                    words.insert(i, "go")
+
+                try:
+                    if words[i+1] != "the":
+                        words.insert(i+1, "the")
+                except:
+                    break
 
         # Retry if no indirect object was given
         if thrown:
@@ -96,6 +108,10 @@ def get_imperative():
                 # Unless verb does not require a direct object
                 if master_chunk[1][0] in nounless_verbs:
                     formatted = [w for w in master_chunk if not w[0] in stop_words]
+                # Or you are indicating to go up/down
+                elif master_chunk[3][0] == 'up' or master_chunk[3][0] == 'down':
+                    formatted = [w for w in master_chunk]
+                    formatted[3] = (formatted[3][0], 'NN')
                 else:
                     print(master_chunk[1][0] + " what?")
                     continue
