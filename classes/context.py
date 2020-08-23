@@ -3,26 +3,51 @@ from classes.locations import Location, Obstacle
 from classes.inventory import Item, Inventory
 
 
+BLOCKED = None
+
+
 class Context:
     def __init__(self, player, map):
         self.player = player
+        self.current_loc = "cornfield south"
         self.map = map
         self.moves = 0
         self.score = 0
+        self.do = None
+        self.ido = None
+        self.tmp_items = []
+
+    def find_do(self, imp):
+        # First search location
+        if self.map[self.current_loc].find_obstacle(self, imp):
+            # Ambiguities found; requires an adjective
+            if len(self.tmp_items) > 1:
+                print(imp.verb, "which", imp.noun + "?")
+            else:
+                return
 
 
 def wfarmhouse_door_func(self):
-    self.e = "kitchen"
+    if self.active_ob.status:
+        print("You swing the door open.")
+        self.e = "kitchen"
+        self.active_ob.status = False
+    else:
+        print("You slam the door shut. Jeez, be gentle...")
+        self.e = BLOCKED
+        self.active_ob.status = True
 
 
 def gen_context():
     # Items and inventories
-    axe = Item("ax", "A gleaming wood ax", 20)
+    axe = Item("ax", "A gleaming wood ax", 20, syns=["ax", "axe"])
     weight = Item("weight", "A very heavy weight", 100)
     barn_inv = Inventory(100000, [axe, weight])
 
     # Obstacles
-    wfarmhouse_door = Obstacle("farmhouse west door", "A normal looking door, painted black.", ["open", "push", "enter"], ["door"])
+    wfarmhouse_door = Obstacle("farmhouse west door", "A normal looking door, painted black.", 100,
+                               verbs=["open", "push", "enter"], syns=["door"],
+                               funcs={"open": wfarmhouse_door_func, "close": wfarmhouse_door_func})
 
     # Locations
     cornfield1 = Location("cornfield south", "Cornfield South", Inventory(100000),
@@ -45,8 +70,8 @@ def gen_context():
                         n="barn", e="west farmhouse")
     wfarmhouse = Location("west farmhouse", "West of Farmhouse", Inventory(100000),
                          "You are facing the west side of a beautiful farmhouse. You can see a door facing you. The large silos lies to the north. A gravel path runs to the south east. A large farm building stands steadfast to the west.",
-                         n="silos", s="south farmhouse", e=None, w="workshop", sw="firepits",
-                          obstacles={wfarmhouse_door.name: wfarmhouse_door}, ob_funcs={wfarmhouse_door.name: wfarmhouse_door_func})
+                         n="silos", s="south farmhouse", e=BLOCKED, w="workshop", sw="firepits",
+                          obstacles={wfarmhouse_door.name: wfarmhouse_door})
     sfarmhouse = Location("south farmhouse", "South of Farmhouse", Inventory(100000),
                           "You are facing the south side of a beautiful farmhouse. A small toolshed is next to a large gas tanker, but they both appear to be empty.",
                           s="hay field", w="west farmhouse", e="front yard")

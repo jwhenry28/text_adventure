@@ -103,8 +103,12 @@ def get_imperative():
             formatted = [w for w in popped if not w[1] in stop_words]
 
         # Start over if there is no direct object
+        # THIS SECTION NEEDS OVERHAUL
         else:
             if master_chunk[1][1][0:2] == 'VB':
+                if len(master_chunk) == 2:
+                    print(master_chunk[1][0] + " what?")
+                    continue
                 # Unless verb does not require a direct object
                 if master_chunk[1][0] in nounless_verbs:
                     formatted = [w for w in master_chunk if not w[0] in stop_words]

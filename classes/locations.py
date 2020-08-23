@@ -4,7 +4,7 @@ from classes.inventory import Inventory
 
 # This is a place which may contain items or obstacles and can be navigated through
 class Location:
-    def __init__(self, name, brief, inv, des="", n="", s="", e="", w="", ne="", nw="", se="", sw="", up="", down="", obstacles ={}, ob_funcs = {}):
+    def __init__(self, name, brief, inv, des="", n="", s="", e="", w="", ne="", nw="", se="", sw="", up="", down="", obstacles ={}):
         self.name = name
         self.brief = brief
         self.des = des
@@ -21,23 +21,24 @@ class Location:
         self.unexplored = True
         self.inv = inv
         self.obstacles = obstacles
-        self.ob_funcs = ob_funcs
-        self.active_ob = None
 
-    def find_obstacle(self, noun):
+    def find_obstacle(self, context, imp):
+        # Reset tmp_items
+        context.tmp_items = []
         for key in self.obstacles:
-            if noun in self.obstacles[key].syns:
-                self.active_ob = self.obstacles[key]
-                return True
+            if imp.noun in self.obstacles[key].syns:
+                context.tmp_items.append(self.obstacles[key])
 
+        # Return true if something was found
+        if len(context.tmp_items) > 0:
+            return True
         return False
 
 
 # This is an obstacle. It is meant to be an item that the player can interact with but cannot pick up. E.g, a door.
-class Obstacle:
-    def __init__(self, name, des, verbs=[], syns=[]):
-        self.name = name
+class Obstacle(Item):
+    def __init__(self, name, des, weight, syns=[], adjs=[], verbs=[], funcs={}):
+        super().__init__(name, des, weight, syns, adjs)
         self.verbs = verbs
-        self.des = des
         self.status = True
-        self.syns = syns
+        self.funcs = funcs

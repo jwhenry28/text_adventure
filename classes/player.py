@@ -6,5 +6,4 @@ class Player:
     def __init__(self):
         self.name = "Wade"
         self.injured = False
-        self.current_loc = "cornfield south"
         self.inv = Inventory(100)

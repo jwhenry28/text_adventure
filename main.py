@@ -10,7 +10,7 @@ context = gen_context()
 
 while True:
     # Print surroundings
-    loc = context.map[context.player.current_loc]
+    loc = context.map[context.current_loc]
     print(loc.brief.title())
     if loc.unexplored:
         print(loc.des)
@@ -18,8 +18,8 @@ while True:
 
     if loc.inv.weight > 0:
         print("There is:")
-        for key in loc.inv.item_list:
-            print(loc.inv.item_list[key].name.title())
+        for key in loc.inv.item_map:
+            print(loc.inv.item_map[key].name.title())
 
     # Gather input from player
     imp = get_imperative()
