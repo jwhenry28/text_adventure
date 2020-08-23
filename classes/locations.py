@@ -22,16 +22,28 @@ class Location:
         self.inv = inv
         self.obstacles = obstacles
 
-    def find_obstacle(self, context, imp):
+    def find_obstacle(self, imp, context):
         # Reset tmp_items
         context.tmp_items = []
         for key in self.obstacles:
             if imp.noun in self.obstacles[key].syns:
                 context.tmp_items.append(self.obstacles[key])
 
-        # Return true if something was found
-        if len(context.tmp_items) > 0:
+        # Return false if nothing was found
+        if len(context.tmp_items) == 0:
+            return False
+        # Return true if non-ambiguous obstacle was found
+        elif len(context.tmp_items) == 1:
             return True
+        # Determine if ambiguities can be resolved
+        elif len(context.tmp_items) > 1:
+            adj = input("which " + imp.noun + "?")
+            for obstacle in context.tmp_items:
+                if adj in obstacle.syns:
+                    context.tmp_items = [obstacle]
+                    return True
+            context.tmp_items = []
+            print("You see no such thing")
         return False
 
 

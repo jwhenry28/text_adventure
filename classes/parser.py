@@ -1,6 +1,7 @@
 from nltk.tokenize import word_tokenize
 from nltk import pos_tag, RegexpParser
 from nltk.corpus import stopwords
+import re
 
 
 class Imperative:
@@ -37,6 +38,9 @@ class Imperative:
 nounless_verbs = ["look"]
 directions = ["north", "south", "east", "west", "northeast", "northwest", "southeast", "southwest",
               "n", "s", "e", "w", "ne", "nw", "se", "sw", "up", "down"]
+verbs = ["go", "take", "drop"]
+nouns = ["north", "south", "east", "west", "northeast", "northwest", "southeast", "southwest", "n", "s", "e", "w", "ne",
+         "nw", "se", "sw", "up", "down", "ax", "axe", "key"]
 
 
 def get_imperative():
@@ -152,3 +156,17 @@ def get_imperative():
         var = False
 
     return imp
+
+
+def regex_imperative():
+    movement = \
+        "^(s(outh)?$|n(orth)?$|e(ast)?$|w(est)?$|south ?west|sw|south ?east|se|north ?west|nw|north ?east|ne|up|down)"
+
+
+    txt = input("> ")
+    x = re.search(movement, txt)
+
+    if x is None:
+        print("None found")
+    else:
+        print(x.group(0))

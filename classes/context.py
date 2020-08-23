@@ -40,9 +40,13 @@ def wfarmhouse_door_func(self):
 
 def gen_context():
     # Items and inventories
-    axe = Item("ax", "A gleaming wood ax", 20, syns=["ax", "axe"])
-    weight = Item("weight", "A very heavy weight", 100)
+    axe = Item("wood ax", "ax", "A gleaming wood ax", 20, syns=["ax", "axe"])
+    weight = Item("heavy weight", "weight", "A very heavy weight", 100)
     barn_inv = Inventory(100000, [axe, weight])
+    copper_key = Item("copper key", "key", "A tarnished copper key", 1, syns=["key"], adjs=["small", "copper"])
+    jade_key = Item("jade key", "key", "A vibrant jade key", 1, syns=["key"], adjs=["small", "jade"])
+    kitchen_inv = Inventory(100000, [copper_key, jade_key])
+    kitchen_inv.print()
 
     # Obstacles
     wfarmhouse_door = Obstacle("farmhouse west door", "A normal looking door, painted black.", 100,
@@ -75,7 +79,7 @@ def gen_context():
     sfarmhouse = Location("south farmhouse", "South of Farmhouse", Inventory(100000),
                           "You are facing the south side of a beautiful farmhouse. A small toolshed is next to a large gas tanker, but they both appear to be empty.",
                           s="hay field", w="west farmhouse", e="front yard")
-    kitchen = Location("kitchen", "Kitchen", Inventory(100000),
+    kitchen = Location("kitchen", "Kitchen", kitchen_inv,
                        "You are in a dusty but tidy kitchen. Several large cupboards line the walls. A half-played boardgame lies abandoned on a large wooden table. A doorway into an ornately furnished living room. On the southern wall is a door to outside. ",
                        e="fire room", w="west farmhouse")
     fireroom = Location("fire room", "Living Room", Inventory(100000),

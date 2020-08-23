@@ -1,7 +1,8 @@
 class Item:
-    def __init__(self, name, des, weight, syns=[], adjs=[]):
-        self.name = name
-        self.des = des
+    def __init__(self, name, type, des, weight, syns=[], adjs=[]):
+        self.name = name # Name should be unique
+        self.type = type # Type is likely what the player will type for the direct object
+        self.des = des # Brief description (for examine verb)
         self.weight = weight
         self.adjs = adjs
         self.syns = syns
@@ -15,6 +16,10 @@ class Inventory:
         for item in items:
             self.weight += item.weight
             self.item_map.update({item.name : item})
+
+    def print(self):
+        for key in self.item_map:
+            print(key + ": " + self.item_map[key].des)
 
     def add_item(self, item):
         if self.weight + item.weight > self.capacity:
