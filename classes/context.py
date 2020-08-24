@@ -13,29 +13,88 @@ class Context:
         self.map = map
         self.moves = 0
         self.score = 0
-        self.do = None
-        self.ido = None
+        self.do = []
+        self.ido = []
         self.tmp_items = []
 
-    def find_do(self, imp):
-        # First search location
-        if self.map[self.current_loc].find_obstacle(self, imp):
-            # Ambiguities found; requires an adjective
-            if len(self.tmp_items) > 1:
-                print(imp.verb, "which", imp.noun + "?")
-            else:
+    def refresh(self):
+        self.do = []
+        self.ido = []
+        self.tmp_items = []
+
+    def print(self):
+        print("\nLOCATION       : " + self.current_loc)
+        print("MOVES          : " + str(self.moves))
+        print("SCORE          : " + str(self.score))
+        print("---- DOs ----")
+        for do in self.do:
+            print(do.name)
+        print("---- IOs ----")
+        for ido in self.ido:
+            print(ido.name)
+        print("---- TMP ----")
+        for item in self.tmp_items:
+            print(item)
+        print("\n")
+
+    def find_do(self, imp, dont_search):
+        curr_loc = self.map[self.current_loc]
+
+        # If all keyword specified, searching all relevant items
+        if imp.noun[0][0] == 'all':
+            if 'obstacles' not in dont_search:
+                for key in curr_loc.obstacles:
+                    self.do.append(curr_loc.obstacles[key])
+            if 'surroundings' not in dont_search:
+                for key in curr_loc.inv.item_map:
+                    self.do.append(curr_loc.inv.item_map[key])
+            if 'inventory' not in dont_search:
+                for key in self.player.inv.item_map:
+                    self.do.append(self.player.inv.item_map[key])
+            return
+
+        # First search location for obstacles
+        if 'obstacle' not in dont_search:
+            obstacle = curr_loc.find_obstacle(imp, self)
+            if obstacle:
+                self.do.append(obstacle)
+                self.tmp_items = []
                 return
 
+        # Next search location for regular items
+        if 'surroundings' not in dont_search:
+            surroundings_item = curr_loc.inv.find(imp, self)
+            if surroundings_item:
+                self.do.append(surroundings_item)
+                self.tmp_items = []
+                return
 
-def wfarmhouse_door_func(self):
-    if self.active_ob.status:
+        # Finally, search player inventory
+        if 'inventory' not in dont_search:
+            player_item = self.player.inv.find(imp, self)
+            if player_item:
+                self.do.append(player_item)
+                self.tmp_items = []
+                return
+
+        # Didn't find anything
+        print("You can't see any such thing.")
+
+
+def farmhousew_door_func(context):
+    farmhousew = context.map["farmhouse west"]
+    kitchen = context.map["kitchen"]
+    door = farmhousew.obstacles["farmhouse west door"]
+    if door.status:
         print("You swing the door open.")
-        self.e = "kitchen"
-        self.active_ob.status = False
+        farmhousew.e = "kitchen"
+        kitchen.w = "farmhouse west"
+        door.status = False
     else:
         print("You slam the door shut. Jeez, be gentle...")
-        self.e = BLOCKED
-        self.active_ob.status = True
+        farmhousew.e = BLOCKED
+        kitchen.w = BLOCKED
+        door.status = True
 
 
 def gen_context():
@@ -43,18 +102,21 @@ def gen_context():
     axe = Item("wood ax", "ax", "A gleaming wood ax", 20, syns=["ax", "axe"])
     weight = Item("heavy weight", "weight", "A very heavy weight", 100)
     barn_inv = Inventory(100000, [axe, weight])
-    copper_key = Item("copper key", "key", "A tarnished copper key", 1, syns=["key"], adjs=["small", "copper"])
-    jade_key = Item("jade key", "key", "A vibrant jade key", 1, syns=["key"], adjs=["small", "jade"])
-    kitchen_inv = Inventory(100000, [copper_key, jade_key])
-    kitchen_inv.print()
+    copper_key = Item("copper key", "copper key", "A tarnished copper key", 1, syns=["key"], adjs=["copper"])
+    jade_key = Item("jade key", "jade key", "A vibrant jade key", 1, syns=["key"], adjs=["jade"])
+    crystal_key = Item("crystal key", "crystal key", "A beautiful crystal key", 1, syns=["key"], adjs=["crystal"])
+    keyring = Inventory(100000, [copper_key, jade_key, crystal_key])
+    bottle = Item("bottle", "bottle", "A clear glass soda bottle", 1, syns=["bottle"], adjs=["glass", "clear"])
+    lunchbox = Item("lunchbox", "lunchbox", "A vintage metal lunchbox", 2, syns=["lunchbox", "box"], adjs=["vintage", "metal"])
+    kitchen_inv = Inventory(100000, [bottle, lunchbox])
 
     # Obstacles
-    wfarmhouse_door = Obstacle("farmhouse west door", "A normal looking door, painted black.", 100,
+    farmhousew_door = Obstacle("farmhouse west door", "door", "A normal looking door, painted black.", 101,
                                verbs=["open", "push", "enter"], syns=["door"],
-                               funcs={"open": wfarmhouse_door_func, "close": wfarmhouse_door_func})
+                               funcs={"open": farmhousew_door_func, "close": farmhousew_door_func})
 
     # Locations
-    cornfield1 = Location("cornfield south", "Cornfield South", Inventory(100000),
+    cornfield1 = Location("cornfield south", "Cornfield South", keyring,
                      "This is a musty cornfield, full of dusty dead stalks. It continues to the north. A farm lies to the south.",
                      n="cornfield north", s="silos")
     cornfield2 = Location("cornfield north", "Cornfield North", Inventory(100000),
@@ -65,23 +127,24 @@ def gen_context():
                      s="river cross", nw="homestead")
     silos = Location("silos", "Twin Silos", Inventory(100000),
                      "Two massive silos stand defiant against the surrounding terrain. A large barn sits to the west. A small farmhouse to the south is nearly obscured by their massive stature. A deteriorating ladder is bolted to the side of one, if only there were a better way up...",
-                     n="cornfield south", s="west farmhouse", w="barn", se="front yard")
+                     n="cornfield south", s="farmhouse west", w="barn", se="front yard")
     barn = Location("barn", "Old Barn", barn_inv,
                     "This is a dusty old barn full of disintegrating hay and rusty tools. A cornfield lies to the east. There is a workshed to the immediate south. You can hear a chorus of frogs to the northwest.",
                     s="workshop", e="silos", nw="frog pond")
     workshop = Location("workshop", "Workshop", Inventory(100000),
                         "This is a moderately sized workshop. Dozens of alien tools are hung neatly from the walls, although you recognize none of them. There are doors on the north and east walls of the workshop.",
-                        n="barn", e="west farmhouse")
-    wfarmhouse = Location("west farmhouse", "West of Farmhouse", Inventory(100000),
+                        n="barn", e="farmhouse west")
+    farmhousew = Location("farmhouse west", "West of Farmhouse", Inventory(100000),
                          "You are facing the west side of a beautiful farmhouse. You can see a door facing you. The large silos lies to the north. A gravel path runs to the south east. A large farm building stands steadfast to the west.",
                          n="silos", s="south farmhouse", e=BLOCKED, w="workshop", sw="firepits",
-                          obstacles={wfarmhouse_door.name: wfarmhouse_door})
-    sfarmhouse = Location("south farmhouse", "South of Farmhouse", Inventory(100000),
+                          obstacles={farmhousew_door.name: farmhousew_door}, ob_messages={"east": "The door is closed."})
+    farmhouses = Location("south farmhouse", "South of Farmhouse", Inventory(100000),
                           "You are facing the south side of a beautiful farmhouse. A small toolshed is next to a large gas tanker, but they both appear to be empty.",
-                          s="hay field", w="west farmhouse", e="front yard")
+                          s="hay field", w="farmhouse west", e="front yard")
     kitchen = Location("kitchen", "Kitchen", kitchen_inv,
                        "You are in a dusty but tidy kitchen. Several large cupboards line the walls. A half-played boardgame lies abandoned on a large wooden table. A doorway into an ornately furnished living room. On the southern wall is a door to outside. ",
-                       e="fire room", w="west farmhouse")
+                       e="fire room", w=BLOCKED,
+                       obstacles={farmhousew_door.name: farmhousew_door}, ob_messages={"west": "The door is closed."})
     fireroom = Location("fire room", "Living Room", Inventory(100000),
                         "You are in a beautifully furnished living room. An enormous moose head is mounted against the south wall. A full bookshelf lies on either side of the moose. However, the room is visually dominated by a massive stone fireplace on the north wall. Instead of bedrocks, each stone in the fireplace is ornately inscribed and appears of precious origins.",
                         e="front yard", w="kitchen")
@@ -96,7 +159,7 @@ def gen_context():
                          n="firepits", e="vineyard east")
     firepits = Location("firepits", "Fire Pits", Inventory(100000),
                          "There are 3 deep fire pits here, each marked by a ring of rough stones. Piles of ashes and charred wood lie in each pit. You can see something gleaming just under the ashes in one pit.",
-                         s="vineyard west", ne="west farmhouse")
+                         s="vineyard west", ne="farmhouse west")
     creek1 = Location("creek1", "Bubbling Creek", Inventory(100000),
                       "The creek is pouring out of a large wellspring to the north. It looks just large enough for you to enter...",
                       n="cave", s="creek2")
@@ -169,10 +232,10 @@ def gen_context():
 
 
 
-    map = {"cornfield south": cornfield1, "barn": barn, "west farmhouse": wfarmhouse, "silos": silos, "kitchen": kitchen,
+    map = {"cornfield south": cornfield1, "barn": barn, "farmhouse west": farmhousew, "silos": silos, "kitchen": kitchen,
            "fire room": fireroom, "front yard": frontyard, "creek1": creek1, "creek2": creek2, "creek3": creek3,
            "creek4": creek4, "lagoon": lagoon, "dock": dock, "cave": cave, "flooded passage": flooded_passage,
-           "grotto": grotto, "south farmhouse": sfarmhouse, "hay field": hayfield, "graveyard": graveyard, "tire tracks1": tires1,
+           "grotto": grotto, "south farmhouse": farmhouses, "hay field": hayfield, "graveyard": graveyard, "tire tracks1": tires1,
            "tire tracks2": tires2, "lone tower": tower, "vineyard east": vineyarde, "vineyard west": vineyardw,
            "firepits": firepits, "workshop": workshop, "cornfield north": cornfield2, "river cross": river,
            "homestead": homestead, "water well": well, "turkey blind": turkey, "forest path1":  forestpath1,

@@ -1,26 +1,36 @@
-import classes.context
+import random
 from classes.parser import Imperative
 from classes.context import Context
 
 
 BLOCKED = None
+obstacle_messages = \
+    ['That is a terrible idea...', 'Good luck with that!', 'You\'d need actual muscles to pick that up...',
+     'You throw your back out. Just kidding, but the thing won\'t budge.']
 
 
 # Data structure for each verb function to contain meta info on what imperative needs to contain
 class VerbFunction:
-    def __init__(self, name, func, do_bool, ido_bool, do_missing="what", ido_missing="what"):
+    def __init__(self, name, func, do_bool, ido_bool, do_missing="what", ido_missing="what", dont_search=[]):
         self.name = name
         self.func = func
         self.do_bool = do_bool
         self.ido_bool = ido_bool
         self.do_missing = do_missing
         self.ido_missing = ido_missing
+        self.dont_search = dont_search
 
 
 # Moves the player to a new location
 def move_handler(imp, context):
     curr_loc = context.map[context.current_loc]
-    direction = imp.noun
+
+    # Make sure a direction was provided since router will not search for DO for this handler
+    if not imp.noun:
+        print("You'll have to say which compass direction to go in.")
+        return
+
+    direction = imp.noun[0][0]
 
     dir_map = {'north': curr_loc.n, 'n': curr_loc.n, 'south': curr_loc.s, 's': curr_loc.s,
                'east': curr_loc.e, 'e': curr_loc.e, 'west': curr_loc.w, 'w': curr_loc.w,
@@ -31,119 +41,139 @@ def move_handler(imp, context):
     try:
         new_loc = dir_map[direction]
     except:
-        print("I don't recognise that direction.")
+        print("That's not a direction I recognise.")
+        imp.print()
         return
 
     if new_loc == '':
         print("You can't go that way.")
     elif new_loc == BLOCKED:
-        print("There is an obstacle here.")
+        ob_message = context.map[context.current_loc].ob_messages[direction]
+        print(ob_message)
     else:
         context.current_loc = new_loc
-MoveHandler = VerbFunction("move_handler", move_handler, True, False, do_missing="where")
+        context.map[new_loc].print_surroundings()
+MoveHandler = VerbFunction("move_handler", move_handler, False, False, do_missing="where")
 
 
 # Teleports a player to a specific location; building this for DEBUG only, but it might make a cool feature later on
 def tp_handler(imp, context):
     try:
-        new_loc = context.map[imp.noun]
+        new_loc = context.map[imp.noun[0][0]]
     except:
         print("I don't recognise that location.")
         return
 
     context.current_loc = new_loc.name
-TpHandler = VerbFunction("tp_handler", tp_handler, True, False, do_missing="where")
+TpHandler = VerbFunction("tp_handler", tp_handler, False, False, do_missing="where")
 
 
 # Adds an item to the player's inventory from the current location
 def take_handler(imp, context):
     curr_loc = context.map[context.current_loc]
 
-    if curr_loc.inv.contains(imp.noun):
-        # Create a tmp item
-        item = curr_loc.inv.get(imp.noun)
+    for item in context.do:
+        # Skip if item is in inventory (would only apply if user selected "all")
+        if item.name in context.player.inv.item_map:
+            continue
 
         # Make sure you can remove this item from the location
         if not curr_loc.inv.remove_item(item):
-            print("You can't take that!")
-            return
+            if len(context.do) == 1:
+                print(random.choice(obstacle_messages))
+            else:
+                print(item.type + ": " + random.choice(obstacle_messages))
+            continue
 
         # Make sure the player can hold this item
         if not context.player.inv.add_item(item):
             print("You're holding too many things already!")
             curr_loc.inv.add_item(item)
-            return
+            continue
 
-        if imp.verb == "obtain":
-            print("'Obtained'. Did you really have to use that word Mr. Thesaurus?")
+        if len(context.do) == 1:
+            if imp.verb == "obtain":
+                print("'Obtained'. Did you really have to use that word Mr. Thesaurus?")
+            else:
+                print("Taken.")
         else:
-            print("Taken.")
-    else:
-        print("You see no such thing.")
-TakeHandler = VerbFunction("take_handler", take_handler, True, False)
+            print(item.type + ": Taken.")
+TakeHandler = VerbFunction("take_handler", take_handler, True, False, dont_search=['inventory'])
 
 
 # Removes an item from the player's inventory
 def drop_handler(imp, context):
     curr_loc = context.map[context.current_loc]
 
-    if context.player.inv.contains(imp.noun):
-        # Create a tmp item
-        item = context.player.inv.get(imp.noun)
+    for item in context.do:
+        # Skip if item is in surroundings or obstacles (would only apply if user selected "all")
+        if item.name in curr_loc.inv.item_map or item.name in curr_loc.obstacles:
+            continue
 
-        # Make sure you can remove this item from your inventory
+        # Make sure you can remove this item from the location
         if not context.player.inv.remove_item(item):
-            print("You can't drop that!")
-            return
+            print("Hmm, very strange. That item weighs more than your total weight!")
+            continue
 
         # Make sure the location can hold this item
         if not curr_loc.inv.add_item(item):
-            print("There are too many things here already!")
-            context.player.inv.add_item(item)
-            return
+            print("There is not enough space here for that.")
+            curr_loc.inv.add_item(item)
+            continue
 
-        print("Dropped.")
-    else:
-        print("You see no such thing.")
-DropHandler = VerbFunction("drop_handler", drop_handler, True, False)
+        # Drop item
+        if len(context.do) == 1:
+            print("Dropped.")
+        else:
+            print(item.type + ": Dropped.")
+DropHandler = VerbFunction("drop_handler", drop_handler, True, False, dont_search=['surroundings', 'obstacles'])
 
 
 def open_handler(imp, context):
-    # Make sure there is an obstacle
-    curr_loc = context.map[context.current_loc]
-    if curr_loc.find_obstacle(imp, context):
-        noun = curr_loc.active_ob.name
-        if not curr_loc.active_ob.status:
-            print("The", imp.noun.upper(), "is already open.")
+    for obstacle in context.do:
+        if obstacle.classname == 'obstacle':
+            if not obstacle.status:
+                print("The", obstacle.type.upper(), "is already open.")
+            else:
+                obstacle.funcs[imp.verb](context)
         else:
-            curr_loc.active_ob.funcs[imp.verb](curr_loc)
-    else:
-        print("You see no such thing.")
+            print("That's not something you can open.")
 OpenHandler = VerbFunction("open_handler", open_handler, True, False)
 
 
 def close_handler(imp, context):
-    # Make sure there is an obstacle
-    curr_loc = context.map[context.current_loc]
-    if curr_loc.find_obstacle(imp.noun):
-        noun = curr_loc.active_ob.name
-        if curr_loc.active_ob.status:
-            print("The", noun.lower(), "is already closed.")
+    for obstacle in context.do:
+        if obstacle.status:
+            print("The", obstacle.type.upper(), "is already closed.")
         else:
-            curr_loc.active_ob.funcs[imp.verb](curr_loc)
-    else:
-        print("You see no such thing.")
+            obstacle.funcs[imp.verb](context)
 CloseHandler = VerbFunction("close_handler", close_handler, True, False)
+
+
+def inv_handler(imp, context):
+    if context.player.inv.weight == 0:
+        print("You are empty handed.")
+    else:
+        print("You are carrying:")
+        for item in context.player.inv.item_map:
+            print(context.player.inv.item_map[item].des)
+InvHandler = VerbFunction("inv_handler", inv_handler, False, False)
 
 
 verb_functions = {"go": MoveHandler, "move": MoveHandler, "run": MoveHandler, "walk": MoveHandler, "tp": TpHandler,
                   "take": TakeHandler, "get": TakeHandler, "grab": TakeHandler, "obtain": TakeHandler, "remove": TakeHandler,
                   "drop": DropHandler,
                   "open": OpenHandler,
-                  "close": CloseHandler, "shut": CloseHandler, "slam": CloseHandler}
+                  "close": CloseHandler, "shut": CloseHandler, "slam": CloseHandler,
+                  "inventory": InvHandler}
 
 
 def route_imperative(imp, context):
+    # Make sure a verb was entered
+    if not imp.verb:
+        print("I didn't understand that sentence.")
+        return
+
     # Try to locate verb function w/ provided verb
     try:
         VerbFunc = verb_functions[imp.verb]
@@ -152,17 +182,18 @@ def route_imperative(imp, context):
         print("I don't recognise that verb.")
         return
 
-    print("Executing ", VerbFunc.name)
-
     # Need a DO?
     if VerbFunc.do_bool:
-        print("DO BOOL is True")
-        if imp.noun == '':
-            print(imp.verb.lower(), VerbFunc.do_missing + "?")
+        if not imp.noun:
+            imp.set_noun([input("What do you want to " + imp.verb + "?\n")])
+            imp.set_nounq([])
+            imp.print()
         # Find DO
-        direct_object = context.find_do(imp)
-        if len(context.tmp_items) == 1:
-            print("Found DO:", context.tmp_items[0].name)
-
+        while imp.noun:
+            context.find_do(imp, VerbFunc.dont_search)
+            imp.remove_noun()
+    # Need an IDO?
 
     VerbFunc.func(imp, context)
+
+    context.refresh()
