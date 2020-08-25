@@ -11,7 +11,7 @@ obstacle_messages = \
 
 # Data structure for each verb function to contain meta info on what imperative needs to contain
 class VerbFunction:
-    def __init__(self, name, func, do_bool, ido_bool, do_missing="what", ido_missing="what", dont_search=[]):
+    def __init__(self, name, func, do_bool, ido_bool, do_missing="What", ido_missing="What", dont_search=[]):
         self.name = name
         self.func = func
         self.do_bool = do_bool
@@ -53,7 +53,7 @@ def move_handler(imp, context):
     else:
         context.current_loc = new_loc
         context.map[new_loc].print_surroundings()
-MoveHandler = VerbFunction("move_handler", move_handler, False, False, do_missing="where")
+MoveHandler = VerbFunction("move_handler", move_handler, False, False, do_missing="Where")
 
 
 # Teleports a player to a specific location; building this for DEBUG only, but it might make a cool feature later on
@@ -65,7 +65,8 @@ def tp_handler(imp, context):
         return
 
     context.current_loc = new_loc.name
-TpHandler = VerbFunction("tp_handler", tp_handler, False, False, do_missing="where")
+    context.map[new_loc.name].print_surroundings()
+TpHandler = VerbFunction("tp_handler", tp_handler, False, False, do_missing="Where")
 
 
 # Adds an item to the player's inventory from the current location
@@ -143,11 +144,19 @@ OpenHandler = VerbFunction("open_handler", open_handler, True, False)
 
 def close_handler(imp, context):
     for obstacle in context.do:
-        if obstacle.status:
-            print("The", obstacle.type.upper(), "is already closed.")
+        if obstacle.classname == 'obstacle':
+            if obstacle.status:
+                print("The", obstacle.type.upper(), "is already closed.")
+            else:
+                obstacle.funcs[imp.verb](context)
         else:
-            obstacle.funcs[imp.verb](context)
+            print("That's not something you can close.")
 CloseHandler = VerbFunction("close_handler", close_handler, True, False)
+
+
+def put_handler(imp, context):
+    return
+PutHandler = VerbFunction("put_handler", put_handler, True, True, ido_missing="Where")
 
 
 def inv_handler(imp, context):
@@ -165,7 +174,8 @@ verb_functions = {"go": MoveHandler, "move": MoveHandler, "run": MoveHandler, "w
                   "drop": DropHandler,
                   "open": OpenHandler,
                   "close": CloseHandler, "shut": CloseHandler, "slam": CloseHandler,
-                  "inventory": InvHandler}
+                  "inventory": InvHandler,
+                  "put": PutHandler, "place": PutHandler, "insert": PutHandler}
 
 
 def route_imperative(imp, context):
@@ -187,12 +197,25 @@ def route_imperative(imp, context):
         if not imp.noun:
             imp.set_noun([input("What do you want to " + imp.verb + "?\n")])
             imp.set_nounq([])
-            imp.print()
         # Find DO
         while imp.noun:
-            context.find_do(imp, VerbFunc.dont_search)
+            context.find_object(imp, VerbFunc.dont_search, "do")
             imp.remove_noun()
     # Need an IDO?
+    if VerbFunc.ido_bool:
+        if not imp.second:
+            msg = "What do you want to " + imp.verb
+            if VerbFunc.ido_missing == "Where":
+                msg = msg + " the " + context.do[0].name + " in?"
+            msg += "\n"
+            imp.set_second([input(msg)])
+            imp.set_secq([])
+        # Find IDO
+        while imp.second:
+            context.find_object(imp, VerbFunc.dont_search, "ido")
+            imp.remove_second()
+
+    context.print()
 
     VerbFunc.func(imp, context)
 

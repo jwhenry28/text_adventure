@@ -1,14 +1,26 @@
 from nltk import word_tokenize
 
+
 class Item:
-    def __init__(self, name, type, des, wei, syns=[], adjs=[]):
+    def __init__(self, name, type, des, weight, syns=[], adjs=[]):
         self.name = name     # Name should be 100% unique
         self.type = type     # Type does not need to be unique; will likely be what player types for direct object
         self.des = des       # Brief description (for 'examine' verb)
-        self.weight = wei    # Between 1-100
+        self.weight = weight    # Between 1-100
         self.adjs = adjs     # Should be unique to this item within a type - two items can't share type and an adjective
         self.syns = syns     # No uniqueness required
         self.classname = "item"
+
+
+# Containers are meant to be an item that can hold other items
+class Container(Item):
+    def __init__(self, name, type, des, weight, inv, syns=[], adjs=[], verbs=[], funcs={}):
+        super().__init__(name, type, des, weight, syns, adjs)
+        self.verbs = verbs
+        self.inv = inv
+        self.closed = True
+        self.funcs = funcs
+        self.classname = "container"
 
 
 class Inventory:
@@ -52,7 +64,7 @@ class Inventory:
             return False
 
     # Use this function when you don't know if the item is present (i.e., allocating a DO)
-    def find(self, imp, context):
+    def find(self, imp, context, item_name, item_adjs):
         # Add all possible items to tmp_items
         item_name = imp.noun[0][0]
         item_adjs = imp.nounq[0]

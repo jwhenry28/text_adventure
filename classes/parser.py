@@ -57,13 +57,13 @@ class Imperative:
 nounless_verbs = ["look"]
 directions = ["north", "south", "east", "west", "northeast", "northwest", "southeast", "southwest",
               "n", "s", "e", "w", "ne", "nw", "se", "sw", "up", "down"]
-verbs = ["go", "take", "drop", "kill", "open", "close", "look"]
+verbs = ["go", "take", "drop", "kill", "open", "close", "look", "insert", "put", "place"]
 nouns = ["north", "south", "east", "west", "northeast", "northwest", "southeast", "southwest", "n", "s", "e", "w", "ne",
          "nw", "se", "sw", "up", "down", "ax", "axe", "key", "keys", "troll", "door", "crowbar", "all", "sword",
-         "bottle", "lunchbox", "lunch", "box"]
-adjectives = ["jade", "small", "copper", "rusty", "crystal"]
+         "bottle", "lunchbox", "lunch", "box", "fireplace", "vault", "keyhole", "lock"]
+adjectives = ["jade", "small", "copper", "rusty", "crystal", "red", "green"]
 conjunctions = ["and"]
-prepositions = ["with", "on", "but"]
+prepositions = ["with", "on", "but", "in", "into"]
 
 
 def get_imperative():
@@ -245,8 +245,6 @@ def regex_imperative():
         imp.set_noun()
         imp.set_nounq([])
 
-    # imp.print()
-
     return imp
 
 
@@ -260,9 +258,5 @@ def mini_parse(imp, clarification, mode):
         imp.set_secq(words)
     else:
         print("INVALID MODE GIVEN:", mode)
-
-    return imp
-
-
 
     return imp

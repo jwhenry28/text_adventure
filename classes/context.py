@@ -1,6 +1,6 @@
 from classes.player import Player
 from classes.locations import Location, Obstacle
-from classes.inventory import Item, Inventory
+from classes.inventory import Item, Inventory, Container
 
 
 BLOCKED = None
@@ -37,43 +37,55 @@ class Context:
             print(item)
         print("\n")
 
-    def find_do(self, imp, dont_search):
+    def find_object(self, imp, dont_search, mode):
         curr_loc = self.map[self.current_loc]
 
+        if mode == 'do':
+            object_location = self.do
+            imp_ob = imp.noun
+            imp_adjs = imp.nounq
+        elif mode == 'ido':
+            object_location = self.ido
+            imp_ob = imp.second
+            imp_adjs = imp.secondq
+        else:
+            print("INVALID MODE ENTERED FIND_OBJECT:", mode)
+            return
+
         # If all keyword specified, searching all relevant items
-        if imp.noun[0][0] == 'all':
+        if imp_ob[0][0] == 'all':
             if 'obstacles' not in dont_search:
                 for key in curr_loc.obstacles:
-                    self.do.append(curr_loc.obstacles[key])
+                    object_location.append(curr_loc.obstacles[key])
             if 'surroundings' not in dont_search:
                 for key in curr_loc.inv.item_map:
-                    self.do.append(curr_loc.inv.item_map[key])
+                    object_location.append(curr_loc.inv.item_map[key])
             if 'inventory' not in dont_search:
                 for key in self.player.inv.item_map:
-                    self.do.append(self.player.inv.item_map[key])
+                    object_location.append(self.player.inv.item_map[key])
             return
 
         # First search location for obstacles
         if 'obstacle' not in dont_search:
-            obstacle = curr_loc.find_obstacle(imp, self)
+            obstacle = curr_loc.find_obstacle(imp, self, imp_ob[0][0], imp_adjs[0])
             if obstacle:
-                self.do.append(obstacle)
+                object_location.append(obstacle)
                 self.tmp_items = []
                 return
 
         # Next search location for regular items
         if 'surroundings' not in dont_search:
-            surroundings_item = curr_loc.inv.find(imp, self)
+            surroundings_item = curr_loc.inv.find(imp, self, imp_ob[0][0], imp_adjs[0])
             if surroundings_item:
-                self.do.append(surroundings_item)
+                object_location.append(surroundings_item)
                 self.tmp_items = []
                 return
 
         # Finally, search player inventory
         if 'inventory' not in dont_search:
-            player_item = self.player.inv.find(imp, self)
+            player_item = self.player.inv.find(imp, self, imp_ob[0][0], imp_adjs[0])
             if player_item:
-                self.do.append(player_item)
+                object_location.append(player_item)
                 self.tmp_items = []
                 return
 
@@ -81,7 +93,7 @@ class Context:
         print("You can't see any such thing.")
 
 
-def farmhousew_door_func(context):
+def farmhousew_door_func(imp, context):
     farmhousew = context.map["farmhouse west"]
     kitchen = context.map["kitchen"]
     door = farmhousew.obstacles["farmhouse west door"]
@@ -97,13 +109,25 @@ def farmhousew_door_func(context):
         door.status = True
 
 
+def fireplace_vault_func(imp, context):
+    fire_room = context.map["fire room"]
+    fireplace = fire_room.obstacles["fireplace vault"]
+    if imp.verb == "insert":
+        fire_room.inv.add_item(context.do[0])
+        context.player.inv.remove_item(context.do[0])
+        print("The " + context.do[0].name + " clicks into place nicely.")
+
+        for item in fire_room.inv.item_map:
+            print(fire_room.inv.item_map[item].des)
+
+
 def gen_context():
     # Items and inventories
     axe = Item("wood ax", "ax", "A gleaming wood ax", 20, syns=["ax", "axe"])
     weight = Item("heavy weight", "weight", "A very heavy weight", 100)
     barn_inv = Inventory(100000, [axe, weight])
-    copper_key = Item("copper key", "copper key", "A tarnished copper key", 1, syns=["key"], adjs=["copper"])
-    jade_key = Item("jade key", "jade key", "A vibrant jade key", 1, syns=["key"], adjs=["jade"])
+    copper_key = Item("copper key", "copper key", "A tarnished copper key", 1, syns=["key"], adjs=["copper", "red"])
+    jade_key = Item("jade key", "jade key", "A vibrant jade key", 1, syns=["key"], adjs=["jade", "green"])
     crystal_key = Item("crystal key", "crystal key", "A beautiful crystal key", 1, syns=["key"], adjs=["crystal"])
     keyring = Inventory(100000, [copper_key, jade_key, crystal_key])
     bottle = Item("bottle", "bottle", "A clear glass soda bottle", 1, syns=["bottle"], adjs=["glass", "clear"])
@@ -114,6 +138,9 @@ def gen_context():
     farmhousew_door = Obstacle("farmhouse west door", "door", "A normal looking door, painted black.", 101,
                                verbs=["open", "push", "enter"], syns=["door"],
                                funcs={"open": farmhousew_door_func, "close": farmhousew_door_func})
+    fireplace_vault = Container("fireplace vault", "fireplace", "A beautifully adorned fireplace crafted from dozens of polished gems and precious stones. Three keyholes lie in a trifecta; one in rusted red-green metal, one in vibrant and polished green, and the last in shining quartz.",
+                                101, inv=Inventory(3, []), verbs=["insert", "unlock"], syns=["fireplace", "vault", "keyhole", "lock"],
+                                funcs={"insert": fireplace_vault_func, "put": fireplace_vault_func})
 
     # Locations
     cornfield1 = Location("cornfield south", "Cornfield South", keyring,
@@ -146,8 +173,9 @@ def gen_context():
                        e="fire room", w=BLOCKED,
                        obstacles={farmhousew_door.name: farmhousew_door}, ob_messages={"west": "The door is closed."})
     fireroom = Location("fire room", "Living Room", Inventory(100000),
-                        "You are in a beautifully furnished living room. An enormous moose head is mounted against the south wall. A full bookshelf lies on either side of the moose. However, the room is visually dominated by a massive stone fireplace on the north wall. Instead of bedrocks, each stone in the fireplace is ornately inscribed and appears of precious origins.",
-                        e="front yard", w="kitchen")
+                        "You are in a beautifully furnished living room. An enormous moose head is mounted against the south wall. A full bookshelf lies on either side of the moose. However, the room is visually dominated by a massive stone fireplace on the north wall. Instead of bedrocks, each stone in the fireplace is ornately inscribed and appears of precious origin. Three keyholes are embedded in three different stones; one reddish, one bright green, and one of clear quartz.",
+                        e="front yard", w="kitchen",
+                        obstacles={fireplace_vault.name: fireplace_vault})
     frontyard = Location("front yard", "Front Yard", Inventory(100000),
                          "This is a long yard stretching west to east. Despite everything else in and around the house being old and dusty, the lawn is neatly manicured. You can hear a small brook burbling past the end of the lawn.",
                          e="creek3", w="fire room", nw="silos")
