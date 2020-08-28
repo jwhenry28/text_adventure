@@ -57,11 +57,12 @@ class Imperative:
 nounless_verbs = ["look"]
 directions = ["north", "south", "east", "west", "northeast", "northwest", "southeast", "southwest",
               "n", "s", "e", "w", "ne", "nw", "se", "sw", "up", "down"]
-verbs = ["go", "take", "drop", "kill", "open", "close", "look", "insert", "put", "place"]
+verbs = ["go", "take", "drop", "kill", "open", "close", "look", "observe", "insert", "put", "place", "break", "chop",
+         "destroy"]
 nouns = ["north", "south", "east", "west", "northeast", "northwest", "southeast", "southwest", "n", "s", "e", "w", "ne",
          "nw", "se", "sw", "up", "down", "ax", "axe", "key", "keys", "troll", "door", "crowbar", "all", "sword",
          "bottle", "lunchbox", "lunch", "box", "fireplace", "vault", "keyhole", "lock"]
-adjectives = ["jade", "small", "copper", "rusty", "crystal", "red", "green"]
+adjectives = ["jade", "small", "copper", "rusty", "crystal", "red", "green", "wooden", "black"]
 conjunctions = ["and"]
 prepositions = ["with", "on", "but", "in", "into"]
 

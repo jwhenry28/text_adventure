@@ -19,11 +19,10 @@ class Test:
 
 context.map[context.current_loc].print_surroundings()
 while True:
-    # # Gather input from player
-    # imp = get_imperative()
-    # route_imperative(imp, context)
-
+    # Gather input from player
     imp = regex_imperative()
+
+    # Route imperative
     route_imperative(imp, context)
 
     print("")  # one newline

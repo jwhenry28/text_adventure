@@ -32,6 +32,14 @@ def move_handler(imp, context):
 
     direction = imp.noun[0][0]
 
+    full_map = {'north': 'north', 'n': 'north', 'south': 'south', 's': 'south',
+               'east': 'east', 'e': 'east', 'west': 'west', 'w': 'west',
+               'northeast': 'northeast', 'ne': 'northeast', 'northwest': 'northwest', 'nw': 'northwest',
+               'southeast': 'southeast', 'se': 'southeast', 'southwest': 'southwest', 'sw': 'southwest',
+               'up': 'up', 'down': 'down'}
+
+    full_direction = full_map[direction]
+
     dir_map = {'north': curr_loc.n, 'n': curr_loc.n, 'south': curr_loc.s, 's': curr_loc.s,
                'east': curr_loc.e, 'e': curr_loc.e, 'west': curr_loc.w, 'w': curr_loc.w,
                'northeast': curr_loc.ne, 'ne': curr_loc.ne, 'northwest': curr_loc.nw, 'nw': curr_loc.nw,
@@ -42,13 +50,12 @@ def move_handler(imp, context):
         new_loc = dir_map[direction]
     except:
         print("That's not a direction I recognise.")
-        imp.print()
         return
 
     if new_loc == '':
         print("You can't go that way.")
     elif new_loc == BLOCKED:
-        ob_message = context.map[context.current_loc].ob_messages[direction]
+        ob_message = context.map[context.current_loc].ob_messages[full_direction]
         print(ob_message)
     else:
         context.current_loc = new_loc
@@ -79,7 +86,7 @@ def take_handler(imp, context):
             continue
 
         # Make sure you can remove this item from the location
-        if not curr_loc.inv.remove_item(item):
+        if not curr_loc.remove_item(item):
             if len(context.do) == 1:
                 print(random.choice(obstacle_messages))
             else:
@@ -134,9 +141,14 @@ def open_handler(imp, context):
     for obstacle in context.do:
         if obstacle.classname == 'obstacle':
             if not obstacle.status:
-                print("The", obstacle.type.upper(), "is already open.")
+                print("The " + obstacle.type + " is already open.")
             else:
-                obstacle.funcs[imp.verb](context)
+                obstacle.funcs[imp.verb](imp, context)
+        elif obstacle.classname == 'container' or obstacle.classname == 'vault':
+            if not obstacle.closed:
+                print("The " + obstacle.type + " is already open.")
+            else:
+                obstacle.funcs[imp.verb](imp, context)
         else:
             print("That's not something you can open.")
 OpenHandler = VerbFunction("open_handler", open_handler, True, False)
@@ -149,12 +161,48 @@ def close_handler(imp, context):
                 print("The", obstacle.type.upper(), "is already closed.")
             else:
                 obstacle.funcs[imp.verb](context)
+        elif obstacle.classname == 'container' or obstacle.classname == 'vault':
+            if obstacle.closed:
+                print("The " + obstacle.type + " is already closed.")
+            else:
+                obstacle.funcs[imp.verb](imp, context)
         else:
             print("That's not something you can close.")
 CloseHandler = VerbFunction("close_handler", close_handler, True, False)
 
 
 def put_handler(imp, context):
+    # You cannot split an item
+    if len(context.ido) > 1:
+        print("You can't use multiple objects with that verb.")
+        return
+
+    object = context.do[0]
+    container = context.ido[0]
+
+    # Make sure player didn't try to put an item inside of itself
+    if object.name == container.name:
+        print("There are two types of people in this world: Those who don't believe in infinite recursion and those that believe 'There are two types of people in this world...'")
+        return
+
+    # Make sure the IDO is actually a container
+    if container.classname == 'vault':
+        imp.set_verb("insert")
+        container.funcs[imp.verb](imp, context)
+        return
+    if container.classname != 'container':
+        print("That can't contain things.")
+        return
+
+    # Move item out of inventory and into container
+    if not container.inv.add_item(object):
+        print("The " + container.name + " is already full.")
+        return
+
+    if not context.player.inv.remove_item(object):
+        print("ERROR: Laws of physics have been broken. Or maybe somebody's code just isn't calculating correctly...")
+        return
+
     return
 PutHandler = VerbFunction("put_handler", put_handler, True, True, ido_missing="Where")
 
@@ -169,13 +217,32 @@ def inv_handler(imp, context):
 InvHandler = VerbFunction("inv_handler", inv_handler, False, False)
 
 
+def look_handler(imp, context):
+    context.map[context.current_loc].unexplored = True
+    context.map[context.current_loc].print_surroundings()
+LookHandler = VerbFunction("look_handler", look_handler, False, False)
+
+
+def break_handler(imp, context):
+    imp.set_verb('break')
+    for obstacle in context.do:
+        if not obstacle.breakable:
+            print("Trying to break a " + obstacle.name + " with a " + context.ido[0].name + " is not notably useful.")
+            return
+
+        obstacle.funcs[imp.verb](imp, context)
+BreakHandler = VerbFunction("break_handler", break_handler, True, True)
+
+
 verb_functions = {"go": MoveHandler, "move": MoveHandler, "run": MoveHandler, "walk": MoveHandler, "tp": TpHandler,
                   "take": TakeHandler, "get": TakeHandler, "grab": TakeHandler, "obtain": TakeHandler, "remove": TakeHandler,
                   "drop": DropHandler,
                   "open": OpenHandler,
                   "close": CloseHandler, "shut": CloseHandler, "slam": CloseHandler,
                   "inventory": InvHandler,
-                  "put": PutHandler, "place": PutHandler, "insert": PutHandler}
+                  "put": PutHandler, "place": PutHandler, "insert": PutHandler,
+                  "look": LookHandler, "observe": LookHandler,
+                  "break": BreakHandler, "destroy": BreakHandler, "chop": BreakHandler}
 
 
 def route_imperative(imp, context):
@@ -201,6 +268,7 @@ def route_imperative(imp, context):
         while imp.noun:
             context.find_object(imp, VerbFunc.dont_search, "do")
             imp.remove_noun()
+
     # Need an IDO?
     if VerbFunc.ido_bool:
         if not imp.second:
@@ -214,8 +282,6 @@ def route_imperative(imp, context):
         while imp.second:
             context.find_object(imp, VerbFunc.dont_search, "ido")
             imp.remove_second()
-
-    context.print()
 
     VerbFunc.func(imp, context)
 

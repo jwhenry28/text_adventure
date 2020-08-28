@@ -2,20 +2,25 @@ from nltk import word_tokenize
 
 
 class Item:
-    def __init__(self, name, type, des, weight, syns=[], adjs=[]):
+    def __init__(self, name, type, des, weight, breakable=False, short_des="", syns=[], adjs=[]):
         self.name = name     # Name should be 100% unique
         self.type = type     # Type does not need to be unique; will likely be what player types for direct object
-        self.des = des       # Brief description (for 'examine' verb)
-        self.weight = weight    # Between 1-100
+        self.des = des       # Description (for 'examine' verb)
+        if short_des:
+            self.short_des = short_des
+        else:
+            self.short_des = des
+        self.weight = weight # Between 1-100
         self.adjs = adjs     # Should be unique to this item within a type - two items can't share type and an adjective
         self.syns = syns     # No uniqueness required
+        self.breakable = breakable
         self.classname = "item"
 
 
 # Containers are meant to be an item that can hold other items
 class Container(Item):
-    def __init__(self, name, type, des, weight, inv, syns=[], adjs=[], verbs=[], funcs={}):
-        super().__init__(name, type, des, weight, syns, adjs)
+    def __init__(self, name, type, des, weight, inv, breakable=False, short_des="", syns=[], adjs=[], verbs=[], funcs={}):
+        super().__init__(name, type, des, weight, breakable, short_des, syns, adjs)
         self.verbs = verbs
         self.inv = inv
         self.closed = True
@@ -28,9 +33,10 @@ class Inventory:
         self.capacity = capacity
         self.weight = 0
         self.item_map = {}
-        for item in items:
-            self.weight += item.weight
-            self.item_map.update({item.name : item})
+        if items:
+            for item in items:
+                self.weight += item.weight
+                self.item_map.update({item.name : item})
 
     def print(self):
         for key in self.item_map:
@@ -66,8 +72,6 @@ class Inventory:
     # Use this function when you don't know if the item is present (i.e., allocating a DO)
     def find(self, imp, context, item_name, item_adjs):
         # Add all possible items to tmp_items
-        item_name = imp.noun[0][0]
-        item_adjs = imp.nounq[0]
         tmp_items = []
         for key in self.item_map:
             if item_name in self.item_map[key].syns:

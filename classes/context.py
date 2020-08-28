@@ -1,5 +1,5 @@
 from classes.player import Player
-from classes.locations import Location, Obstacle
+from classes.locations import Location, Obstacle, Vault
 from classes.inventory import Item, Inventory, Container
 
 
@@ -51,6 +51,7 @@ class Context:
         else:
             print("INVALID MODE ENTERED FIND_OBJECT:", mode)
             return
+        print("Step - find_object:", imp_ob[0][0])
 
         # If all keyword specified, searching all relevant items
         if imp_ob[0][0] == 'all':
@@ -69,6 +70,7 @@ class Context:
         if 'obstacle' not in dont_search:
             obstacle = curr_loc.find_obstacle(imp, self, imp_ob[0][0], imp_adjs[0])
             if obstacle:
+                print("Found obstacle", obstacle.name)
                 object_location.append(obstacle)
                 self.tmp_items = []
                 return
@@ -77,6 +79,7 @@ class Context:
         if 'surroundings' not in dont_search:
             surroundings_item = curr_loc.inv.find(imp, self, imp_ob[0][0], imp_adjs[0])
             if surroundings_item:
+                print("Found surroudings", surroundings_item.name)
                 object_location.append(surroundings_item)
                 self.tmp_items = []
                 return
@@ -85,6 +88,7 @@ class Context:
         if 'inventory' not in dont_search:
             player_item = self.player.inv.find(imp, self, imp_ob[0][0], imp_adjs[0])
             if player_item:
+                print("Found inventory", player_item.name)
                 object_location.append(player_item)
                 self.tmp_items = []
                 return
@@ -109,16 +113,37 @@ def farmhousew_door_func(imp, context):
         door.status = True
 
 
+def barnhouse_door_func(imp, context):
+    print("Success!")
+
+
 def fireplace_vault_func(imp, context):
     fire_room = context.map["fire room"]
-    fireplace = fire_room.obstacles["fireplace vault"]
-    if imp.verb == "insert":
-        fire_room.inv.add_item(context.do[0])
+    fireplace = fire_room.obstacles["adorned fireplace"]
+    if imp.verb == 'insert':
+        if context.do[0].name not in fireplace.req_locks:
+            print("It doesn't seem to fit.")
+            return
+        fireplace.inv.add_item(context.do[0])
         context.player.inv.remove_item(context.do[0])
         print("The " + context.do[0].name + " clicks into place nicely.")
 
-        for item in fire_room.inv.item_map:
-            print(fire_room.inv.item_map[item].des)
+        if 'copper key' in fireplace.inv.item_map and \
+           'jade key' in fireplace.inv.item_map and \
+           'crystal key' in fireplace.inv.item_map:
+            fireplace.locked = False
+            print("You hear a loud mechanism clunk open.")
+
+    elif imp.verb == 'open' or imp.verb == 'close':
+        if fireplace.locked:
+            print("You try, but the sparkling stones hold fast.")
+        else:
+            if fireplace.closed:
+                print("The fireplace swings outward revealing a hidden vault.")
+                fireplace.closed = False
+            else:
+                print("The fireplace swings shut with a mighty thud.")
+                fireplace.closed = True
 
 
 def gen_context():
@@ -135,12 +160,18 @@ def gen_context():
     kitchen_inv = Inventory(100000, [bottle, lunchbox])
 
     # Obstacles
-    farmhousew_door = Obstacle("farmhouse west door", "door", "A normal looking door, painted black.", 101,
-                               verbs=["open", "push", "enter"], syns=["door"],
+    farmhousew_door = Obstacle("farmhouse west door", "door", "A sturdy looking door, painted black", 101,
+                               verbs=["open", "push", "enter"], syns=["door"], adjs=["black"],
                                funcs={"open": farmhousew_door_func, "close": farmhousew_door_func})
-    fireplace_vault = Container("fireplace vault", "fireplace", "A beautifully adorned fireplace crafted from dozens of polished gems and precious stones. Three keyholes lie in a trifecta; one in rusted red-green metal, one in vibrant and polished green, and the last in shining quartz.",
-                                101, inv=Inventory(3, []), verbs=["insert", "unlock"], syns=["fireplace", "vault", "keyhole", "lock"],
-                                funcs={"insert": fireplace_vault_func, "put": fireplace_vault_func})
+    barnhouse_door = Obstacle("barnhouse door", "door", "A deteriorating wooden door", 101,
+                              breakable=True, verbs=["break", "chop", "destroy"], syns=["door"], adjs=["wooden"],
+                              funcs={"break": barnhouse_door_func})
+
+    # Vaults
+    fireplace_vault = Vault("adorned fireplace", "fireplace", "A beautifully adorned fireplace crafted from dozens of polished gems and precious stones. Three keyholes lie in a trifecta; one in rusted red-green metal, one in vibrant and polished green, and the last in shining quartz.",
+                            101, short_des="An adorned fireplace", inv=Inventory(3, []), verbs=["insert", "unlock"], syns=["fireplace", "vault", "keyhole", "lock"],
+                            funcs={"insert": fireplace_vault_func, "open": fireplace_vault_func, "close": fireplace_vault_func},
+                            can_remove=False, req_locks=["copper key", "jade key", "crystal key"])
 
     # Locations
     cornfield1 = Location("cornfield south", "Cornfield South", keyring,
@@ -157,10 +188,12 @@ def gen_context():
                      n="cornfield south", s="farmhouse west", w="barn", se="front yard")
     barn = Location("barn", "Old Barn", barn_inv,
                     "This is a dusty old barn full of disintegrating hay and rusty tools. A cornfield lies to the east. There is a workshed to the immediate south. You can hear a chorus of frogs to the northwest.",
-                    s="workshop", e="silos", nw="frog pond")
+                    s=BLOCKED, e="silos", nw="frog pond",
+                    obstacles={barnhouse_door.name: barnhouse_door}, ob_messages={"south": "The door is closed."})
     workshop = Location("workshop", "Workshop", Inventory(100000),
                         "This is a moderately sized workshop. Dozens of alien tools are hung neatly from the walls, although you recognize none of them. There are doors on the north and east walls of the workshop.",
-                        n="barn", e="farmhouse west")
+                        n=BLOCKED, e="farmhouse west",
+                        obstacles={barnhouse_door.name: barnhouse_door}, ob_messages={"north": "The door is closed."})
     farmhousew = Location("farmhouse west", "West of Farmhouse", Inventory(100000),
                          "You are facing the west side of a beautiful farmhouse. You can see a door facing you. The large silos lies to the north. A gravel path runs to the south east. A large farm building stands steadfast to the west.",
                          n="silos", s="south farmhouse", e=BLOCKED, w="workshop", sw="firepits",
