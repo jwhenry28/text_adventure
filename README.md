@@ -2,7 +2,7 @@
 
 To whom it may concern:
 
-I've always loved retro games. One of my favorites is Zork, the Underground Empire.
+I've always loved **retro** games. One of my favorites is Zork, the Underground Empire.
 As a neat way to learn some of the basics of Object Oriented Python programming, I decided
 to make my own shameless rip-off of Zork. 
 
