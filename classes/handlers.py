@@ -1,5 +1,5 @@
 import random
-from classes.parser import Imperative
+from classes.parser import Imperative, get_prep
 from classes.context import Context
 
 
@@ -33,12 +33,10 @@ def move_handler(imp, context):
     direction = imp.noun[0][0]
 
     full_map = {'north': 'north', 'n': 'north', 'south': 'south', 's': 'south',
-               'east': 'east', 'e': 'east', 'west': 'west', 'w': 'west',
-               'northeast': 'northeast', 'ne': 'northeast', 'northwest': 'northwest', 'nw': 'northwest',
-               'southeast': 'southeast', 'se': 'southeast', 'southwest': 'southwest', 'sw': 'southwest',
-               'up': 'up', 'down': 'down'}
-
-    full_direction = full_map[direction]
+                'east': 'east', 'e': 'east', 'west': 'west', 'w': 'west',
+                'northeast': 'northeast', 'ne': 'northeast', 'northwest': 'northwest', 'nw': 'northwest',
+                'southeast': 'southeast', 'se': 'southeast', 'southwest': 'southwest', 'sw': 'southwest',
+                'up': 'up', 'u': 'up', 'd': 'down', 'down': 'down'}
 
     dir_map = {'north': curr_loc.n, 'n': curr_loc.n, 'south': curr_loc.s, 's': curr_loc.s,
                'east': curr_loc.e, 'e': curr_loc.e, 'west': curr_loc.w, 'w': curr_loc.w,
@@ -47,6 +45,7 @@ def move_handler(imp, context):
                'up': curr_loc.up, 'down': curr_loc.down}
 
     try:
+        full_direction = full_map[direction]
         new_loc = dir_map[direction]
     except:
         print("That's not a direction I recognise.")
@@ -79,14 +78,13 @@ TpHandler = VerbFunction("tp_handler", tp_handler, False, False, do_missing="Whe
 # Adds an item to the player's inventory from the current location
 def take_handler(imp, context):
     curr_loc = context.map[context.current_loc]
-
     for item in context.do:
         # Skip if item is in inventory (would only apply if user selected "all")
         if item.name in context.player.inv.item_map:
             continue
 
         # Make sure you can remove this item from the location
-        if not curr_loc.remove_item(item):
+        if not curr_loc.remove_item(item, context.player):
             if len(context.do) == 1:
                 print(random.choice(obstacle_messages))
             else:
@@ -158,9 +156,9 @@ def close_handler(imp, context):
     for obstacle in context.do:
         if obstacle.classname == 'obstacle':
             if obstacle.status:
-                print("The", obstacle.type.upper(), "is already closed.")
+                print("The", obstacle.type, "is already closed.")
             else:
-                obstacle.funcs[imp.verb](context)
+                obstacle.funcs[imp.verb](imp, context)
         elif obstacle.classname == 'container' or obstacle.classname == 'vault':
             if obstacle.closed:
                 print("The " + obstacle.type + " is already closed.")
@@ -225,12 +223,26 @@ LookHandler = VerbFunction("look_handler", look_handler, False, False)
 
 def break_handler(imp, context):
     imp.set_verb('break')
-    for obstacle in context.do:
-        if not obstacle.breakable:
-            print("Trying to break a " + obstacle.name + " with a " + context.ido[0].name + " is not notably useful.")
+    breaker = context.ido[0]
+    for object in context.do:
+        # Make sure DO is breakable
+        if not object.breakable:
+            print("Trying to break a " + object.name + " is not notably useful.")
             return
 
-        obstacle.funcs[imp.verb](imp, context)
+        # Make sure IDO is a breaker
+        if 'break' not in breaker.traits:
+            prep = get_prep(breaker.name)
+            print(prep.title() + " " + breaker.name + " cannot be used to break things.")
+            return
+
+        # Add IDO to inventory if it is not already
+        if breaker.name not in context.player.inv.item_map:
+            print("(first taking the " + breaker.name + ")")
+            context.map[context.current_loc].inv.remove_item(breaker)
+            context.player.inv.add_item(breaker)
+
+        object.funcs[imp.verb](imp, context)
 BreakHandler = VerbFunction("break_handler", break_handler, True, True)
 
 
@@ -269,12 +281,19 @@ def route_imperative(imp, context):
             context.find_object(imp, VerbFunc.dont_search, "do")
             imp.remove_noun()
 
+    # If no DO was found and you need one, you must exit
+    if not context.do and VerbFunc.do_bool:
+        context.refresh
+        return
+
     # Need an IDO?
     if VerbFunc.ido_bool:
         if not imp.second:
             msg = "What do you want to " + imp.verb
             if VerbFunc.ido_missing == "Where":
-                msg = msg + " the " + context.do[0].name + " in?"
+                msg = msg + " the " + context.do[0].type + " in?"
+            else:
+                msg = msg + " the " + context.do[0].type + " with?"
             msg += "\n"
             imp.set_second([input(msg)])
             imp.set_secq([])

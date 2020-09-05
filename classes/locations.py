@@ -1,5 +1,6 @@
 from classes.inventory import Item
 from classes.inventory import Inventory
+from classes.parser import get_prep
 
 
 # This is an obstacle. It is meant to be an item that the player can interact with but cannot pick up. E.g, a door.
@@ -56,19 +57,50 @@ class Location:
         self.obstacles = obstacles
         self.ob_messages = ob_messages
 
+    def debug_print(self):
+        print("------- " + self.name + "-------")
+        print("NORTH:     ", self.n)
+        print("SOUTH:     ", self.s)
+        print("EAST:      ", self.e)
+        print("WEST:      ", self.w)
+        print("NORTHEAST: ", self.ne)
+        print("NORTHWEST: ", self.nw)
+        print("SOUTHEAST: ", self.se)
+        print("SOUTHWEST: ", self.sw)
+        print("UP:        ", self.up)
+        print("DOWN:      ", self.down + "\n")
+        print(self.des)
+        print(self.brief + "\n")
+        print("UNEXPLORED:", self.unexplored)
+        print("INVENTORY:")
+        for item in self.inv.item_map.values():
+            print(item.name)
+        print("\nOBSTACLES:")
+        for obstacle in self.obstacles.values():
+            print(obstacle.name)
+
     # Searches location inventory and each container/vault's inventories
-    def remove_item(self, item):
+    def remove_item(self, item, player):
         # Check own inventory
         if item.name in self.inv.item_map:
             self.inv.remove_item(item)
             return True
+
         # Check each inventory of an obstacle
-        for obstacle in self.obstacles:
-            if item.name in self.obstacles[obstacle].inv.item_map:
-                self.obstacles[obstacle].inv.remove_item(item)
-                return True
+        for obstacle in self.obstacles.values():
+            if item.name == obstacle.name:
+                if obstacle.weight > 100:
+                    return False
+                else:
+                    self.obstacles.pop(item.name)
+                    return True
+            if obstacle.classname == 'vault' or obstacle.classname == 'container':
+                if item.name in self.obstacles[obstacle].inv.item_map:
+                    self.obstacles[obstacle].inv.remove_item(item)
+                    return True
         return False
 
+    # Searches for an obstacle which may or may not be present
     def find_obstacle(self, imp, context, item_name, item_adjs):
         # Add all possible items to tmp_items
         tmp_items = []
@@ -99,6 +131,13 @@ class Location:
             context.tmp_items = []
         return None
 
+    # Removes an obstacle that you know to be present
+    def remove_obstacle(self, obstacle):
+        try:
+            self.obstacles.pop(obstacle.name)
+        except:
+            print("ERROR in remove_obstacle: tried to remove " + obstacle.name + " but it was nowhere to be found.")
+
     def print_surroundings(self):
         # Print surroundings
         print(self.brief.title())
@@ -106,17 +145,16 @@ class Location:
             self.unexplored = False
             print(self.des)
 
-            if self.inv.weight > 0 or self.obstacles:
+            if self.inv.weight > 0:
                 print("There is:")
                 for key in self.inv.item_map:
                     print(self.inv.item_map[key].des)
+            if self.obstacles:
                 for obstacle in self.obstacles.values():
-                    print(obstacle.short_des)
-                    if (obstacle.classname == 'container' or obstacle.classname == 'vault') and obstacle.inv.item_map:
-                        print("The " + obstacle.type + " contains:")
-                        for item in obstacle.inv.item_map.values():
-                            if item.name[0] in ['a', 'e', 'i', 'o', 'u']:
-                                prep = 'An'
-                            else:
-                                prep = 'A'
-                            print(prep + " " + item.name)
+                    if (obstacle.classname == 'container' or obstacle.classname == 'vault'):
+                        print(obstacle.short_des)
+                        if obstacle.inv.item_map:
+                            print("The " + obstacle.type + " contains:")
+                            for item in obstacle.inv.item_map.values():
+                                prep = get_prep(item.name[0])
+                                print(prep.title() + " " + item.name)

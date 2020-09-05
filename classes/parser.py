@@ -54,14 +54,22 @@ class Imperative:
         print("\n")
 
 
+# Utility functions
+def get_prep(string):
+    if string[0] in ['a', 'e', 'i', 'o', 'u']:
+        return 'an'
+    return 'a'
+
+
 nounless_verbs = ["look"]
-directions = ["north", "south", "east", "west", "northeast", "northwest", "southeast", "southwest",
-              "n", "s", "e", "w", "ne", "nw", "se", "sw", "up", "down"]
+directions = ["n", "s", "e", "w", "ne", "nw", "se", "sw", "u", "d",
+              "north", "south", "east", "west", "northeast", "northwest", "southeast", "southwest", "up", "down"]
 verbs = ["go", "take", "drop", "kill", "open", "close", "look", "observe", "insert", "put", "place", "break", "chop",
          "destroy"]
 nouns = ["north", "south", "east", "west", "northeast", "northwest", "southeast", "southwest", "n", "s", "e", "w", "ne",
-         "nw", "se", "sw", "up", "down", "ax", "axe", "key", "keys", "troll", "door", "crowbar", "all", "sword",
-         "bottle", "lunchbox", "lunch", "box", "fireplace", "vault", "keyhole", "lock"]
+         "nw", "se", "sw", "u", "d", "up", "down", "ax", "axe", "key", "keys", "troll", "door", "crowbar", "all",
+         "sword", "bottle", "lunchbox", "lunch", "box", "fireplace", "vault", "keyhole", "lock", "tome", "book",
+         "manuscript"]
 adjectives = ["jade", "small", "copper", "rusty", "crystal", "red", "green", "wooden", "black"]
 conjunctions = ["and"]
 prepositions = ["with", "on", "but", "in", "into"]
@@ -176,6 +184,9 @@ def get_imperative():
                     imp.set_second(item[0])
                 else:
                     imp.set_noun(item[0])
+            else:
+                print("TRIGGERED")
+                unknown = item[0]
 
         var = False
 
@@ -195,6 +206,7 @@ def regex_imperative():
 
     imp = Imperative()
     ido_flag = False
+    unknown = None
 
     # Inventory - no noun needed
     if inventory_check:
@@ -238,12 +250,12 @@ def regex_imperative():
                 tmp = []
             elif word in conjunctions:
                 tmp = []
+            else:
+                unknown = word
 
-    # Program didn't recognize the sentence; just guess as to what is what
-    if imp.is_bogus():
-        print("BOGUS")
-        imp.print()
-        imp.set_noun()
+    # Put bogus value in if unknown word encountered and no known
+    if unknown:
+        imp.set_noun([unknown])
         imp.set_nounq([])
 
     return imp

@@ -2,17 +2,18 @@ from nltk import word_tokenize
 
 
 class Item:
-    def __init__(self, name, type, des, weight, breakable=False, short_des="", syns=[], adjs=[]):
-        self.name = name     # Name should be 100% unique
-        self.type = type     # Type does not need to be unique; will likely be what player types for direct object
-        self.des = des       # Description (for 'examine' verb)
+    def __init__(self, name, type, des, weight, breakable=False, short_des="", syns=[], adjs=[], traits=[]):
+        self.name = name      # Name should be 100% unique
+        self.type = type      # Type does not need to be unique; will likely be what player types for direct object
+        self.des = des        # Description (for 'examine' verb)
         if short_des:
             self.short_des = short_des
         else:
             self.short_des = des
-        self.weight = weight # Between 1-100
-        self.adjs = adjs     # Should be unique to this item within a type - two items can't share type and an adjective
-        self.syns = syns     # No uniqueness required
+        self.weight = weight  # Between 1-100
+        self.adjs = adjs      # Should be unique to this item within a type - two items can't share type & an adjective
+        self.syns = syns      # No uniqueness required
+        self.traits = traits  # Needed to determine if item can do certain types of actions
         self.breakable = breakable
         self.classname = "item"
 
