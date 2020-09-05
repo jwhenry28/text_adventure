@@ -1,8 +1,7 @@
 from flask import Flask, request, render_template
-from website_utils.utils import HistoryNode, create_node
+from website_utils.utils import HistoryNode
 
 app = Flask(__name__)
-history = []
 
 
 @app.route('/')
@@ -10,9 +9,10 @@ def home():
     return render_template('home.html')
 
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/game', methods=['GET', 'POST'])
 def game():
-    return render_template('game.html')
+    return render_template('game.html', history=[])
+
 
 if __name__ == '__main__':
     app.run(debug=True)

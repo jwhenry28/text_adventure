@@ -1,0 +1,24 @@
+body {
+    font-family: 'Montserrat', sans-serif;
+  }
+
+.logo {
+    background-color: #0D122B;
+    padding: 10px;
+    color: white;
+}
+
+.Console {
+  padding-top: 18px;
+  overflow-y: scroll;
+  display: inline-block;
+  height: 250px;
+}
+
+.ConsoleLine {
+  font-family:Courier;
+  color: black;
+  background: white;
+  border: 1px double white;
+  outline: none;
+}
