@@ -1,4 +1,5 @@
 from nltk import word_tokenize
+from classes.parser import mini_parse
 
 
 class Item:
@@ -88,6 +89,8 @@ class Inventory:
         elif len(tmp_items) > 1:
             if not item_adjs:
                 clarification = input("Which " + item_name + "? \n")
+                imp.print()
+                imp =
                 for word in word_tokenize(clarification):
                     item_adjs.append(word)
             for curr_item in tmp_items:

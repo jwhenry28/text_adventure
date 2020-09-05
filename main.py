@@ -1,4 +1,4 @@
-from classes.parser import get_imperative, regex_imperative, Imperative
+from classes.parser import regex_imperative, Imperative
 from classes.locations import Location
 from classes.player import Player
 from classes.handlers import route_imperative

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leiper</title>
+</head>
+<body>
+    {% extends "template.html" %}
+    {% block content %}
+
+    <h2>Leiper</h2>
+
+    <div style="width:600.4px; background-color:inherit;">
+        <div style="background-color:inherit;">
+            <code>North of House</code>
+        </div>
+        <div class="Console">
+            <span>ZORK</span>
+            <span>
+                Welcome to LEIPER. <br />
+                Release 13 / Serial number 040826 / Inform v6.14 <br />
+                Library 6/7 <br />
+            </span>
+            <br>
+            <span>Cornfield South <br>
+            </span>
+            <span>
+                {% for item in history %}
+                <span>{{ item.description }}</span><br>
+                {% endfor %}
+                <!-- <label for="input">> </label>
+                <input class="ConsoleLine" type="text" id="input" name="input" autocomplete="off" style="width:507.7px;" method="GET"><br> -->
+                <!-- <input type="submit" value="submit"> -->
+                <form>
+                    >
+                <input type="text" name="input">
+                </form>
+            </span>
+        </div>
+    </div>
+
+    {% endblock %}
+</body>
+</html>

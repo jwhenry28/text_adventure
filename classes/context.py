@@ -223,7 +223,7 @@ def gen_context():
                             can_remove=False, req_locks=["copper key", "jade key", "crystal key"])
 
     # Locations
-    cornfield1 = Location("cornfield south", "Cornfield South", Inventory(100000),
+    cornfield1 = Location("cornfield south", "Cornfield South", keyring,
                      "This is a musty cornfield, full of dusty dead stalks. It continues to the north. A farm lies to the south.",
                      n="cornfield north", s="silos")
     cornfield2 = Location("cornfield north", "Cornfield North", Inventory(100000),

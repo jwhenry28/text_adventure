@@ -1,5 +1,5 @@
 import random
-from classes.parser import Imperative, get_prep
+from classes.parser import Imperative, get_prep, mini_parse
 from classes.context import Context
 
 
@@ -274,8 +274,11 @@ def route_imperative(imp, context):
     # Need a DO?
     if VerbFunc.do_bool:
         if not imp.noun:
-            imp.set_noun([input("What do you want to " + imp.verb + "?\n")])
-            imp.set_nounq([])
+            clarification = input("What do you want to " + imp.verb + "?\n")
+            imp = mini_parse(imp, clarification, 'do')
+
+            imp.print()
+
         # Find DO
         while imp.noun:
             context.find_object(imp, VerbFunc.dont_search, "do")
@@ -295,8 +298,9 @@ def route_imperative(imp, context):
             else:
                 msg = msg + " the " + context.do[0].type + " with?"
             msg += "\n"
-            imp.set_second([input(msg)])
-            imp.set_secq([])
+            clarification = input(msg)
+            imp = mini_parse(imp, clarification, 'ido')
+
         # Find IDO
         while imp.second:
             context.find_object(imp, VerbFunc.dont_search, "ido")
