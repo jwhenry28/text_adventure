@@ -4,6 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Leiper</title>
+
+    <script>
+        const out = document.getElementById("console")
+        let c = 0
+
+        setInterval(function() {
+            // allow 1px inaccuracy by adding 1
+            const isScrolledToBottom = out.scrollHeight - out.clientHeight <= out.scrollTop + 1
+
+            const newElement = document.createElement("div")
+
+            newElement.textContent = format(c++, 'Bottom position:', out.scrollHeight - out.clientHeight,  'Scroll position:', out.scrollTop)
+
+            out.appendChild(newElement)
+
+            // scroll to bottom if isScrolledToBottom is true
+            if (isScrolledToBottom) {
+              out.scrollTop = out.scrollHeight - out.clientHeight
+            }
+        }, 500)
+
+        function format () {
+          return Array.prototype.slice.call(arguments).join(' ')
+        }
+    </script>
 </head>
 <body>
     {% extends "template.html" %}
@@ -11,30 +36,30 @@
 
     <h2>Leiper</h2>
 
-    <div style="width:600.4px; background-color:inherit;">
-        <div style="background-color:inherit;">
-            <code>North of House</code>
+    <div style="width: 50%; height: 800px; margin: 0 auto;">
+        <div class="MetaInfo">
+            <pre>{{ context.current_loc }}     Moves: {{ context.moves }}     Score: {{ context.score }}</pre>
         </div>
-        <div class="Console">
-            <span>ZORK</span>
+        <div class="Console" id="console">
+            <span>LEIPER</span>
             <span>
                 Welcome to LEIPER. <br />
                 Release 13 / Serial number 040826 / Inform v6.14 <br />
                 Library 6/7 <br />
             </span>
             <br>
-            <span>Cornfield South <br>
-            </span>
             <span>
-                {% for item in history %}
-                <span>{{ item.description }}</span><br>
+                {% for item in context.history %}
+                    {% if item.node_type == 'des' %}
+                        <span class="HistoryNode">{{ item.message }}</span><br>
+                    {% elif item.node_type == 'input' %}
+                        <span class="HistoryNode">> {{ item.message }}</span><br>
+                    {% else %}
+                        <span class="HistoryNode"><strong>{{ item.message }}</strong></span><br>
+                    {% endif %}
                 {% endfor %}
-                <!-- <label for="input">> </label>
-                <input class="ConsoleLine" type="text" id="input" name="input" autocomplete="off" style="width:507.7px;" method="GET"><br> -->
-                <!-- <input type="submit" value="submit"> -->
-                <form>
-                    >
-                <input type="text" name="input">
+                <form method="post" style="font-family:Courier;">
+                    > <input class="ConsoleLine" type="text" name="input" autocomplete="off">
                 </form>
             </span>
         </div>

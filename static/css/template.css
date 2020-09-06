@@ -12,13 +12,30 @@ body {
   padding-top: 18px;
   overflow-y: scroll;
   display: inline-block;
-  height: 250px;
+  height: 40%;
+  width: 100%;
 }
 
 .ConsoleLine {
-  font-family:Courier;
+  font-family: Courier;
+  font-size: 16px;
   color: black;
   background: white;
   border: 1px double white;
   outline: none;
+  width: 95%;
+}
+
+.HistoryNode {
+  font-family: Courier;
+  font-size: 16px;
+  color: black;
+  background: white;
+  width: 100%;
+}
+
+.MetaInfo {
+  font-size: 15px;
+  color: white;
+  background-color: black;
 }

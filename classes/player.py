@@ -1,4 +1,3 @@
-from classes.inventory import Item
 from classes.inventory import Inventory
 
 

@@ -1,6 +1,5 @@
 from nltk.tokenize import word_tokenize
-from nltk import pos_tag, RegexpParser
-from nltk.corpus import stopwords
+from website_utils.utils import my_print, my_input
 import re
 
 
@@ -24,11 +23,17 @@ class Imperative:
     def set_nounq(self, nounq):
         self.nounq.append(nounq)
 
+    def overwrite_nounq(self, nounq):
+        self.nounq[0] = nounq
+
     def set_noun(self, noun):
         self.noun.append(noun)
 
     def set_secq(self, secondq):
         self.secondq.append(secondq)
+
+    def overwrite_secq(self, secq):
+        self.secq[0] = secq
 
     def set_second(self, second):
         self.second.append(second)
@@ -75,13 +80,12 @@ conjunctions = ["and"]
 prepositions = ["with", "on", "but", "in", "into"]
 
 
-def regex_imperative():
+def regex_imperative(command):
     movement_rule = \
         "^(s(outh)?$|n(orth)?$|e(ast)?$|w(est)?$|south ?west|sw|south ?east|se|north ?west|nw|north ?east|ne|up|down)"
     inventory_rule = "^inventory$|^inv$|^i$"
     debug_rule = "^tp .*$"
 
-    command = input("> ")
     movement_check = re.search(movement_rule, command)
     inventory_check = re.search(inventory_rule, command)
     debug_check = re.search(debug_rule, command)
@@ -140,47 +144,56 @@ def regex_imperative():
         imp.set_noun([unknown])
         imp.set_nounq([])
 
-    imp.print()
-
     return imp
 
 
 # Used to parse a partial input, when ambiguous items need clarification.
-def mini_parse(imp, clarification, mode):
+def mini_parse(imp, clarification, ob_mode, adj_mode=False):
     words = word_tokenize(clarification)
 
-    if mode == 'do':
+    adj_flag = adj_mode
+    if ob_mode == 'do':
         ido_flag = False
-    elif mode == 'ido':
+    elif ob_mode == 'ido':
         ido_flag = True
     else:
-        print("INVALID MODE GIVEN:", mode)
+        my_print("err", "INVALID MODE GIVEN:", ob_mode)
         return
 
     # tmp used to store each individual item's adjectives
     tmp = []
-    for word in words:
-        # Nouns
-        if word in nouns:
-            if ido_flag:
-                imp.set_second([word])
-                imp.set_secq(tmp)
+    if not adj_flag:
+        for word in words:
+            # Nouns
+            if word in nouns:
+                if ido_flag:
+                    imp.set_second([word])
+                    imp.set_secq(tmp)
+                else:
+                    imp.set_noun([word])
+                    imp.set_nounq(tmp)
+            # Adjectives
+            elif word in adjectives:
+                if ido_flag:
+                    tmp.append(word)
+                else:
+                    tmp.append(word)
+            # Conjunctions & Prepositions
+            elif word in prepositions:
+                ido_flag = True
+                tmp = []
+            elif word in conjunctions:
+                tmp = []
             else:
-                imp.set_noun([word])
-                imp.set_nounq(tmp)
-        # Adjectives
-        elif word in adjectives:
-            if ido_flag:
+                unknown = word
+    else:
+        for word in words:
+            # Adjectives
+            if word in adjectives:
                 tmp.append(word)
-            else:
-                tmp.append(word)
-        # Conjunctions & Prepositions
-        elif word in prepositions:
-            ido_flag = True
-            tmp = []
-        elif word in conjunctions:
-            tmp = []
+        if ob_mode == 'do':
+            imp.overwrite_nounq(tmp)
         else:
-            unknown = word
+            imp.overwrite_secq(tmp)
 
     return imp

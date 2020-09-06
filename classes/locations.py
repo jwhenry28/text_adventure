@@ -1,6 +1,6 @@
 from classes.inventory import Item
-from classes.inventory import Inventory
 from classes.parser import get_prep
+from website_utils.utils import my_print, my_input
 
 
 # This is an obstacle. It is meant to be an item that the player can interact with but cannot pick up. E.g, a door.
@@ -102,15 +102,20 @@ class Location:
 
     # Searches for an obstacle which may or may not be present
     def find_obstacle(self, imp, context, item_name, item_adjs):
-        # Add all possible items to tmp_items
+        # Add all possible obstacles & their contents to tmp_items
         tmp_items = []
         for key in self.obstacles:
             if item_name in self.obstacles[key].syns:
                 tmp_items.append(self.obstacles[key])
             if self.obstacles[key].classname == 'container' or self.obstacles[key].classname == 'vault':
-                for item in self.obstacles[key].inv.item_map:
-                    if item_name in self.obstacles[key].inv.item_map[item].syns:
-                        tmp_items.append(self.obstacles[key].inv.item_map[item])
+                for item in self.obstacles[key].inv.item_map.values():
+                    if item_name in item.syns:
+                        if not item_adjs:
+                            tmp_items.append(item)
+                        else:
+                            for adj in item_adjs:
+                                if adj in item.adjs:
+                                    tmp_items.append(item)
 
         # Return false if nothing was found
         if len(tmp_items) == 0:
@@ -121,7 +126,8 @@ class Location:
         # Determine if ambiguities can be resolved
         elif len(tmp_items) > 1:
             if not item_adjs:
-                item_adjs.append(input("Which " + item_name + "? \n"))
+                msg = my_input("Which " + item_name + "? \n")
+                item_adjs.append(msg)
             for curr_item in tmp_items:
                 for adj in item_adjs:
                     if adj in curr_item.adjs:
@@ -136,25 +142,25 @@ class Location:
         try:
             self.obstacles.pop(obstacle.name)
         except:
-            print("ERROR in remove_obstacle: tried to remove " + obstacle.name + " but it was nowhere to be found.")
+            my_print("err", "ERROR in remove_obstacle: tried to remove " + obstacle.name + " but it was nowhere to be found.")
 
     def print_surroundings(self):
         # Print surroundings
-        print(self.brief.title())
+        my_print("title", self.brief.title())
         if self.unexplored:
             self.unexplored = False
-            print(self.des)
+            my_print("des", self.des)
 
             if self.inv.weight > 0:
-                print("There is:")
+                my_print("des", "There is:")
                 for key in self.inv.item_map:
-                    print(self.inv.item_map[key].des)
+                    my_print("des", self.inv.item_map[key].des)
             if self.obstacles:
                 for obstacle in self.obstacles.values():
-                    if (obstacle.classname == 'container' or obstacle.classname == 'vault'):
-                        print(obstacle.short_des)
+                    if obstacle.classname == 'container' or obstacle.classname == 'vault':
+                        my_print("des", obstacle.short_des)
                         if obstacle.inv.item_map:
-                            print("The " + obstacle.type + " contains:")
+                            my_print("des", "The " + obstacle.type + " contains:")
                             for item in obstacle.inv.item_map.values():
                                 prep = get_prep(item.name[0])
-                                print(prep.title() + " " + item.name)
+                                my_print("des", prep.title() + " " + item.name)

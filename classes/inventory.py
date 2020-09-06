@@ -1,5 +1,5 @@
-from nltk import word_tokenize
 from classes.parser import mini_parse
+from website_utils.utils import my_print, my_input
 
 
 class Item:
@@ -88,11 +88,17 @@ class Inventory:
         # Determine if ambiguities can be resolved
         elif len(tmp_items) > 1:
             if not item_adjs:
-                clarification = input("Which " + item_name + "? \n")
-                imp.print()
-                imp =
-                for word in word_tokenize(clarification):
-                    item_adjs.append(word)
+                clarification = my_input("Which " + item_name + "? \n")
+                imp = mini_parse(imp, clarification, context.mode, adj_mode=True)
+                if context.mode == 'do':
+                    item_adjs = imp.nounq[0]
+                elif context.mode == 'ido':
+                    item_adjs = imp.secq[0]
+            # Exit if no known adjectives were given
+            if not item_adjs:
+                context.tmp_items = []
+                return None
+            # Else, search for a match
             for curr_item in tmp_items:
                 for adj in item_adjs:
                     if adj in curr_item.adjs:

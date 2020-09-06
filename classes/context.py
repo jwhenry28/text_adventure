@@ -1,6 +1,7 @@
 from classes.player import Player
 from classes.locations import Location, Obstacle, Vault
 from classes.inventory import Item, Inventory, Container
+from website_utils.utils import my_print
 
 
 BLOCKED = None
@@ -16,11 +17,19 @@ class Context:
         self.do = []
         self.ido = []
         self.tmp_items = []
+        self.mode = 'do'
+
+    def toggle_mode(self):
+        if self.mode == 'do':
+            self.mode = 'ido'
+        else:
+            self.mode = 'do'
 
     def refresh(self):
         self.do = []
         self.ido = []
         self.tmp_items = []
+        self.mode = 'do'
 
     def print(self):
         print("\nLOCATION       : " + self.current_loc)
@@ -49,7 +58,7 @@ class Context:
             imp_ob = imp.second
             imp_adjs = imp.secondq
         else:
-            print("INVALID MODE ENTERED FIND_OBJECT:", mode)
+            my_print("err", "INVALID MODE ENTERED FIND_OBJECT:", mode)
             return
 
         # If all keyword specified, searching all relevant items
@@ -90,7 +99,7 @@ class Context:
                 return
 
         # Didn't find anything
-        print("You can't see any such thing.")
+        my_print("des", "You can't see any such thing.")
 
 
 def farmhousew_door_func(imp, context):
@@ -99,17 +108,17 @@ def farmhousew_door_func(imp, context):
     door = farmhousew.obstacles["farmhouse west door"]
     if door.status:
         if context.current_loc == 'farmhouse west':
-            print("You swing the door open, revealing a kitchen to the east.")
+            my_print("des", "You swing the door open, revealing a kitchen to the east.")
         else:
-            print("You swing the door open, revealing a neat yard.")
+            my_print("des", "You swing the door open, revealing a neat yard.")
         farmhousew.e = "kitchen"
         kitchen.w = "farmhouse west"
         door.status = False
     else:
         if imp.verb == 'slam':
-            print("You slam the door shut. Jeez, be gentle...")
+            my_print("des", "You slam the door shut. Jeez, be gentle...")
         else:
-            print("You close the door shut.")
+            my_print("des", "You close the door shut.")
         farmhousew.e = BLOCKED
         kitchen.w = BLOCKED
         door.status = True
@@ -120,15 +129,15 @@ def farmhousee_door_func(imp, context):
     front_yard = context.map["front yard"]
     door = fireroom.obstacles["farmhouse east door"]
     if door.status:
-        print("You swing the door open.")
+        my_print("des", "You swing the door open.")
         fireroom.e = "front yard"
         front_yard.w = "fire room"
         door.status = False
     else:
         if imp.verb == 'slam':
-            print("You slam the door shut. Jeez, be gentle...")
+            my_print("des", "You slam the door shut. Jeez, be gentle...")
         else:
-            print("You close the door shut.")
+            my_print("des", "You close the door shut.")
         fireroom.e = BLOCKED
         front_yard.w = BLOCKED
         door.status = True
@@ -136,7 +145,7 @@ def farmhousee_door_func(imp, context):
 
 def barnhouse_door_func(imp, context):
     if imp.verb == 'open':
-        print("The door gives slightly, but it won't budge.")
+        my_print("des", "The door gives slightly, but it won't budge.")
         return
 
     barn = context.map['barn']
@@ -156,7 +165,7 @@ def barnhouse_door_func(imp, context):
         msg = 'a large workshop.'
     else:
         msg = 'an old barn, full of junk.'
-    print("You smash the door to splinters revealing " + msg)
+    my_print("des", "You smash the door to splinters revealing " + msg)
 
 
 def fireplace_vault_func(imp, context):
@@ -164,27 +173,27 @@ def fireplace_vault_func(imp, context):
     fireplace = fire_room.obstacles["adorned fireplace"]
     if imp.verb == 'insert':
         if context.do[0].name not in fireplace.req_locks:
-            print("It doesn't seem to fit.")
+            my_print("des", "It doesn't seem to fit.")
             return
         fireplace.inv.add_item(context.do[0])
         context.player.inv.remove_item(context.do[0])
-        print("The " + context.do[0].name + " clicks into place nicely.")
+        my_print("des", "The " + context.do[0].name + " clicks into place nicely.")
 
         if 'copper key' in fireplace.inv.item_map and \
            'jade key' in fireplace.inv.item_map and \
            'crystal key' in fireplace.inv.item_map:
             fireplace.locked = False
-            print("You hear a loud mechanism clunk open.")
+            my_print("des", "You hear a loud mechanism clunk open.")
 
     elif imp.verb == 'open' or imp.verb == 'close':
         if fireplace.locked:
-            print("You try, but the sparkling stones hold fast.")
+            my_print("des", "You try, but the sparkling stones hold fast.")
         else:
             if fireplace.closed:
-                print("The fireplace swings outward revealing a hidden vault.")
+                my_print("des", "The fireplace swings outward revealing a hidden vault.")
                 fireplace.closed = False
             else:
-                print("The fireplace swings shut with a mighty thud.")
+                my_print("des", "The fireplace swings shut with a mighty thud.")
                 fireplace.closed = True
 
 
