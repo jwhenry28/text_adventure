@@ -8,6 +8,10 @@ body {
     color: white;
 }
 
+.GameInfo {
+    background-color: grey;
+}
+
 .Console {
   padding-top: 18px;
   overflow-y: scroll;

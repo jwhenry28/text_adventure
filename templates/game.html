@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Leiper</title>
 
+    <script>
+        console.log(document.getElementById('main_div'))
+        console.log(document.getElementById('console'))
+    </script>
+
 </head>
 <body>
     {% extends "template.html" %}
@@ -12,17 +17,16 @@
 
     <h2>Leiper</h2>
 
-    <div style="width: 50%; height: 800px; margin: 0 auto;">
+    <div id = "main_div" style="width: 50%; height: 800px; margin: 0 auto;">
         <div class="MetaInfo">
             <pre>{{ context.current_loc }}     Moves: {{ context.moves }}     Score: {{ context.score }}</pre>
         </div>
         <div class="Console" id="console">
-            <span>LEIPER</span><br>
-            <span>
+            <div>LEIPER<br>
                 Welcome to LEIPER. <br />
                 Release 13 / Serial number 040826 / Inform v6.14 <br />
                 Library 6/7 <br />
-            </span>
+            </div>
             <br>
             <span>
                 {% for item in context.history %}
@@ -34,7 +38,7 @@
                         <span class="HistoryNode"><strong>{{ item.message }}</strong></span><br>
                     {% endif %}
                 {% endfor %}
-                <form method="post" style="font-family:Courier;">
+                <form method="post" style="font-family: Courier;" onsubmit="document.getElementById('main_div').scrollTop = document.getElementById('console').offsetTop;">
                     > <input class="ConsoleLine" type="text" name="input" autocomplete="off">
                 </form>
             </span>
