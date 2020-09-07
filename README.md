@@ -3,7 +3,7 @@
 To whom it may concern:
 
 I've always loved **retro** games. One of my favorites is [*Zork, the Underground Empire*](https://textadventures.co.uk/games/view/5zyoqrsugeopel3ffhz_vq/zork).
-As a neat way to learn some of the basics of Object Oriented Python programming, I decided
+As a neat way to learn some of the basics of Object Oriented Python programming as well as some web-development, I decided
 to make my own shameless rip-off of Zork. 
 
 At the moment, I've only implemented the "scaffolding" of the game (the parser, each class, etc)
