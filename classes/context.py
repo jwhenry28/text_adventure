@@ -1,10 +1,29 @@
 from classes.player import Player
 from classes.locations import Location, Obstacle, Vault
 from classes.inventory import Item, Inventory, Container
+from classes.player import Equipment
 from website_utils.utils import my_print
 
 
 BLOCKED = None
+
+
+# Equipment
+def iron_boots_func(imp, context):
+    river1 = context.map["river cross1"]
+    river2 = context.map["river cross2"]
+    homestead = context.map["homestead"]
+
+    if imp.verb == "equip":
+        river1.nw = "homestead"
+        river2.e = "homestead"
+        homestead.se = "river cross1"
+        homestead.w = "river cross2"
+
+
+
+iron_boots = Equipment("iron boots", "boots", "A set of sturdy iron boots", 50, syns=["boots", "shoes", "iron"],
+                           adjs=["iron", "heavy", "metal"], equip_func=iron_boots_func)
 
 
 class Context:
@@ -143,6 +162,26 @@ def farmhousee_door_func(imp, context):
         door.status = True
 
 
+def hunting_closet_door_func(imp, context):
+    kitchen = context.map["kitchen"]
+    door = kitchen.obstacles["hunting closet door"]
+    if door.status:
+        if "taken" not in iron_boots.traits:
+            my_print("des", "You swing the door open revealing a small equipment closet. An iron pair of boots are in the closet. They look heavy enough to hold someone down against considerable force.")
+            kitchen.inv.add_item(iron_boots)
+        else:
+            my_print("des", "You swing the door open to an empty closet.")
+        door.status = False
+    else:
+        if imp.verb == 'slam':
+            my_print("des", "You slam the door shut. Jeez, be gentle...")
+        else:
+            my_print("des", "You close the door shut.")
+        if "iron boots" in kitchen.inv.item_map and "taken" not in iron_boots.traits:
+            kitchen.inv.remove_item(iron_boots)
+        door.status = True
+
+
 def barnhouse_door_func(imp, context):
     if imp.verb == 'open':
         my_print("des", "The door gives slightly, but it won't budge.")
@@ -206,9 +245,10 @@ def gen_context():
     jade_key = Item("jade key", "jade key", "A vibrant jade key", 1, syns=["key"], adjs=["jade", "green"])
     crystal_key = Item("crystal key", "crystal key", "A beautiful crystal key", 1, syns=["key"], adjs=["crystal"])
     keyring = Inventory(100000, [copper_key, jade_key, crystal_key])
-    bottle = Item("bottle", "bottle", "A clear glass soda bottle", 1, syns=["bottle"], adjs=["glass", "clear"])
 
-    lunchbox = Item("lunchbox", "lunchbox", "A vintage metal lunchbox", 2, syns=["lunchbox", "box"], adjs=["vintage", "metal"])
+    bottle = Item("bottle", "bottle", "A clear glass soda bottle", 1, syns=["bottle"], adjs=["glass", "clear"])
+    lunchbox = Item("lunchbox", "lunchbox", "A vintage metal lunchbox", 2, syns=["lunchbox", "box"],
+                    adjs=["vintage", "metal"])
     kitchen_inv = Inventory(100000, [bottle, lunchbox])
 
     tome = Item("tome", "tome", "An ancient tome", 5, syns=["tome", "book", "manuscript"], adjs=["old", "ancient"])
@@ -224,23 +264,32 @@ def gen_context():
     barnhouse_door = Obstacle("barnhouse door", "door", "A deteriorating wooden door", 101,
                               breakable=True, verbs=["break", "chop", "destroy"], syns=["door"], adjs=["wooden"],
                               funcs={"break": barnhouse_door_func, "open": barnhouse_door_func})
+    hunting_closet_door = Obstacle("hunting closet door", "door", "A white closet door", 101,
+                                   verbs=["open", "push", "enter"], syns=["door"], adjs=["white", "closet"],
+                                   funcs={"open": hunting_closet_door_func, "close": hunting_closet_door_func, "slam": hunting_closet_door_func})
 
     # Vaults
-    fireplace_vault = Vault("adorned fireplace", "fireplace", "A beautifully adorned fireplace crafted from dozens of polished gems and precious stones. Three keyholes lie in a trifecta; one in rusted red-green metal, one in vibrant and polished green, and the last in shining quartz.",
+    fireplace_vault = Vault("adorned fireplace", "fireplace", "This is a beautifully adorned fireplace crafted from dozens of polished gems and precious stones. Three keyholes lie in a trifecta; one in rusted red-green metal, one in vibrant and polished green, and the last in shining quartz.",
                             101, short_des="An adorned fireplace", inv=Inventory(3, []), verbs=["insert", "unlock"], syns=["fireplace", "vault", "keyhole", "lock"],
                             funcs={"insert": fireplace_vault_func, "open": fireplace_vault_func, "close": fireplace_vault_func},
                             can_remove=False, req_locks=["copper key", "jade key", "crystal key"])
+    odd_monolith = Vault("odd monolith", "monolith", "This is an odd stone sitting in the middle of the circle. Like its monolithic counterparts, it appears to be quarried from a dull stone long ago. Three lines of sanskrit are carved into the stone in some ancient language.",
+                         101, short_des="An odd stone", inv=Inventory(0), verbs=[], syns=["monolith", "stone"],
+                         can_remove=False)
 
     # Locations
-    cornfield1 = Location("cornfield south", "Cornfield South", keyring,
+    cornfield1 = Location("cornfield south", "Cornfield South", Inventory(100000),
                      "This is a musty cornfield, full of dusty dead stalks. It continues to the north. A farm lies to the south.",
                      n="cornfield north", s="silos")
     cornfield2 = Location("cornfield north", "Cornfield North", Inventory(100000),
                           "This is a musty cornfield, full of dusty dead stalks. It continues to the south. A small river lies to the north.",
-                          n="river cross", s="cornfield south")
-    river = Location("river cross", "River Crossing", Inventory(100000),
-                     "This is a river, swift and strong. The path runs through the river northwest to south. It looks shallow enough to wade through, but the current would sweep you away.",
-                     s="cornfield north", nw="homestead")
+                          n="river cross1", s="cornfield south")
+    river1 = Location("river cross1", "River Crossing", Inventory(100000),
+                     "This is a river, swift and strong. The path runs through the river northwest to south. It looks shallow enough to wade through, but the current would surely sweep you off your feet.",
+                     s="cornfield north", nw=BLOCKED, ob_messages={"northwest": "The current is too strong."})
+    river2 = Location("river cross2", "River Crossing", Inventory(100000),
+                      "This is a river, swift and strong. The path runs to the east on one side of the river and to the southwest on the other. It looks shallow enough to wade through, but the current would surely sweep you off your feet.",
+                      sw="water well", e=BLOCKED, ob_messages={"east": "The current is too strong."})
     silos = Location("silos", "Twin Silos", Inventory(100000),
                      "Two massive silos stand defiant against the surrounding terrain. A large barn sits to the west. A small farmhouse to the south is nearly obscured by their massive stature. A deteriorating ladder is bolted to the side of one, if only there were a better way up...",
                      n="cornfield south", s="farmhouse west", w="barn", se="front yard")
@@ -262,7 +311,7 @@ def gen_context():
     kitchen = Location("kitchen", "Kitchen", kitchen_inv,
                        "You are in a dusty but tidy kitchen. Several large cupboards line the walls. A half-played boardgame lies abandoned on a large wooden table. A doorway into an ornately furnished living room. On the southern wall is a door to outside. ",
                        e="fire room", w=BLOCKED,
-                       obstacles={farmhousew_door.name: farmhousew_door}, ob_messages={"west": "The door is closed."})
+                       obstacles={farmhousew_door.name: farmhousew_door, hunting_closet_door.name: hunting_closet_door}, ob_messages={"west": "The door is closed."})
     fireroom = Location("fire room", "Living Room", Inventory(100000),
                         "You are in a beautifully furnished living room. An enormous moose head is mounted against the south wall. A full bookshelf lies on either side of the moose. However, the room is visually dominated by a massive stone fireplace on the north wall. Instead of bedrocks, each stone in the fireplace is ornately inscribed and appears of precious origin. Three keyholes are embedded in three different stones; one reddish, one bright green, and one of clear quartz.",
                         e=BLOCKED, w="kitchen",
@@ -333,10 +382,10 @@ def gen_context():
                                 down="tower study")
     homestead = Location("homestead", "Homestead", Inventory(100000),
                          "This is a derelict homestead. At one point it time, it may have been a comfortable frontier home. Now it is barely recognizible. The path continues to the southwest and to the southeast.",
-                         se="river cross", sw="water well")
+                         se=BLOCKED, w=BLOCKED, ob_messages={"southeast": "The current is too strong.", "west": "The current is too strong."})
     well = Location("water well", "Water Well", Inventory(100000),
                     "This is a natural wellspring. Several wild cows drinking at the spring block your way to the water. The path continues to the northeast and northwest.",
-                    ne="river cross", nw="turkey blind")
+                    ne="river cross2", nw="turkey blind")
     turkey = Location("turkey blind", "Turkey Blind", Inventory(100000),
                       "This is an old turkey blind underneath a large oak. Stacks of logs neatly enclose a small camoflauge tent. The path continues to the southwest and southeast.",
                       se="water well", sw="forest path1")
@@ -344,8 +393,9 @@ def gen_context():
                           "This is a well-used path through the forest. A variety of animal tracks are imprinted in the dirt. The path continues to the south and northeast.",
                           s="strange circle", ne="turkey blind")
     circle = Location("strange circle", "Strange Circle", Inventory(100000),
-                      "You are in a forest clearing that can only be described as odd. A circle of worn monolithic stones stand silent vigil in the center of the clearing. The grass is slightly browned in a way that creates intricate patterns around the stones. Paths branch off to the north, south, and east.",
-                      n="forest path1", s="forest path2", e="large oak")
+                      "You are in a forest clearing that can only be described as odd. A circle of worn monolithic stones stand silent vigil in the center of the clearing. The grass is slightly browned in a way that creates intricate patterns around the stones. Paths branch off to the north, south, and east. You cannot shake the feeling that you are being watched...",
+                      n="forest path1", s="forest path2", e="large oak",
+                      obstacles={odd_monolith.name: odd_monolith})
     oak = Location("large oak", "Large Oak", Inventory(100000),
                    "This is an massive white oak. Its branches are easily several feet thick and its root snake out dozens of meters in all directions. You can see a small clearing to the west. A path cuts through the forest to the south. You can hear a chorus of frogs to the southeast.",
                    w="strange circle", s="forest path3", se="frog pond")
@@ -360,16 +410,15 @@ def gen_context():
                         w="forest path3", se="barn")
 
 
-
     map = {"cornfield south": cornfield1, "barn": barn, "farmhouse west": farmhousew, "silos": silos, "kitchen": kitchen,
            "fire room": fireroom, "front yard": frontyard, "creek1": creek1, "creek2": creek2, "creek3": creek3,
            "creek4": creek4, "lagoon": lagoon, "dock": dock, "cave": cave, "flooded passage": flooded_passage,
            "grotto": grotto, "south farmhouse": farmhouses, "hay field": hayfield, "graveyard": graveyard, "tire tracks1": tires1,
            "tire tracks2": tires2, "tower base": tower_base, "vineyard east": vineyarde, "vineyard west": vineyardw,
-           "firepits": firepits, "workshop": workshop, "cornfield north": cornfield2, "river cross": river,
+           "firepits": firepits, "workshop": workshop, "cornfield north": cornfield2, "river cross1": river1,
            "homestead": homestead, "water well": well, "turkey blind": turkey, "forest path1":  forestpath1,
            "strange circle": circle, "large oak": oak, "forest path2": forestpath2, "forest path3": forestpath3,
-           "frog pond": frogpond, "tower library": tower_library, "tower study": tower_study,
+           "frog pond": frogpond, "tower library": tower_library, "tower study": tower_study, "river cross2": river2,
            "tower laboratory": tower_laboratory}
 
     player = Player()

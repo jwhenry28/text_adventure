@@ -1,24 +1,29 @@
 import random
 from classes.parser import get_prep, mini_parse
+from classes.context import iron_boots
 from website_utils.utils import my_print, my_input
 
 
 BLOCKED = None
+SENTINEL = None
 obstacle_messages = \
-    ['That is a terrible idea...', 'Good luck with that!', 'You\'d need actual muscles to pick that up...',
+    ['That is a terrible idea.', 'Good luck with that!', 'You\'d need actual muscles to pick that up...',
      'You throw your back out. Just kidding, but the thing won\'t budge.']
 
 
 # Data structure for each verb function to contain meta info on what imperative needs to contain
 class VerbFunction:
-    def __init__(self, name, func, do_bool, ido_bool, do_missing="What", ido_missing="What", dont_search=[]):
+    def __init__(self, name, func, do_bool, ido_bool, do_missing="What", ido_missing="What", dont_search=SENTINEL):
         self.name = name
         self.func = func
         self.do_bool = do_bool
         self.ido_bool = ido_bool
         self.do_missing = do_missing
         self.ido_missing = ido_missing
-        self.dont_search = dont_search
+        if dont_search == SENTINEL:
+            self.dont_search = []
+        else:
+            self.dont_search = dont_search
 
 
 # Moves the player to a new location
@@ -46,7 +51,7 @@ def move_handler(imp, context):
 
     try:
         full_direction = full_map[direction]
-        new_loc = dir_map[direction]
+        new_loc = dir_map[full_direction]
     except:
         my_print("des", "That's not a direction I recognise.")
         return
@@ -73,6 +78,36 @@ def tp_handler(imp, context):
     context.current_loc = new_loc.name
     context.map[new_loc.name].print_surroundings()
 TpHandler = VerbFunction("tp_handler", tp_handler, False, False, do_missing="Where")
+
+
+# Equips an item to a player
+def equip_handler(imp, context):
+
+    curr_loc = context.map[context.current_loc]
+
+    for item in context.do:
+        # Notify player if not equipment
+        if item.classname != "equipment":
+            if len(context.do) == 1:
+                my_print("des", "That's not something you can equip.")
+            else:
+                my_print("des", item.type + ": That's not something you can equip.")
+
+        else:
+            if item.name not in context.player.inv.item_map:
+                if not context.player.inv.add_item(item):
+                    my_print("des", "You're holding too many things already!")
+                    curr_loc.inv.add_item(item)
+                    continue
+                else:
+                    my_print("des", "(first taking the " + item.name + ")")
+
+            item.equip_func(imp, context)
+            if len(context.do) == 1:
+                my_print("des", "Equipped.")
+            else:
+                my_print("des", item.type + ": Equipped.")
+EquipHandler = VerbFunction("equip_handler", equip_handler, True, False)
 
 
 # Adds an item to the player's inventory from the current location
@@ -104,6 +139,9 @@ def take_handler(imp, context):
                 my_print("des", "Taken.")
         else:
             my_print("des", item.type + ": Taken.")
+
+        if "taken" not in item.traits:
+            item.traits.append("taken")
 TakeHandler = VerbFunction("take_handler", take_handler, True, False, dont_search=['inventory'])
 
 
@@ -132,6 +170,8 @@ def drop_handler(imp, context):
             my_print("des", "Dropped.")
         else:
             my_print("des", item.type + ": Dropped.")
+
+        item.traits.remove("taken")
 DropHandler = VerbFunction("drop_handler", drop_handler, True, False, dont_search=['surroundings', 'obstacles'])
 
 
@@ -246,6 +286,11 @@ def break_handler(imp, context):
 BreakHandler = VerbFunction("break_handler", break_handler, True, True)
 
 
+# def read_handler(imp, context):
+#     for page in context.do:
+
+
+
 verb_functions = {"go": MoveHandler, "move": MoveHandler, "run": MoveHandler, "walk": MoveHandler, "tp": TpHandler,
                   "take": TakeHandler, "get": TakeHandler, "grab": TakeHandler, "obtain": TakeHandler, "remove": TakeHandler,
                   "drop": DropHandler,
@@ -254,7 +299,8 @@ verb_functions = {"go": MoveHandler, "move": MoveHandler, "run": MoveHandler, "w
                   "inventory": InvHandler,
                   "put": PutHandler, "place": PutHandler, "insert": PutHandler,
                   "look": LookHandler, "observe": LookHandler,
-                  "break": BreakHandler, "destroy": BreakHandler, "chop": BreakHandler}
+                  "break": BreakHandler, "destroy": BreakHandler, "chop": BreakHandler,
+                  "equip": EquipHandler}
 
 
 def route_imperative(imp, context):

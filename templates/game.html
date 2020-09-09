@@ -6,8 +6,10 @@
     <title>Leiper</title>
 
     <script>
-        console.log(document.getElementById('main_div'))
-        console.log(document.getElementById('console'))
+        function updateScroll() {
+            var element = document.getElementById("console");
+            element.scrollTop = element.scrollHeight;
+        }
     </script>
 
 </head>
@@ -38,8 +40,8 @@
                         <span class="HistoryNode"><strong>{{ item.message }}</strong></span><br>
                     {% endif %}
                 {% endfor %}
-                <form method="post" style="font-family: Courier;" onsubmit="document.getElementById('main_div').scrollTop = document.getElementById('console').offsetTop;">
-                    > <input class="ConsoleLine" type="text" name="input" autocomplete="off">
+                <form method="post" style="font-family: Courier;">
+                    > <input class="ConsoleLine" type="text" name="input" autocomplete="off" autofocus onclick="setInterval(updateScroll, 1);">
                 </form>
             </span>
         </div>

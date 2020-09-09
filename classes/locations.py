@@ -2,14 +2,24 @@ from classes.inventory import Item
 from classes.parser import get_prep
 from website_utils.utils import my_print, my_input
 
+SENTINEL = None
+
 
 # This is an obstacle. It is meant to be an item that the player can interact with but cannot pick up. E.g, a door.
 class Obstacle(Item):
-    def __init__(self, name, type, des, weight, breakable=False, short_des="", syns=[], adjs=[], verbs=[], funcs={}):
-        super().__init__(name, type, des, weight, breakable, short_des, syns, adjs)
-        self.verbs = verbs
+    def __init__(self, name, type, des, weight, breakable=False, short_des="", syns=SENTINEL, adjs=SENTINEL, verbs=SENTINEL, funcs=SENTINEL):
+        super().__init__(name, type, des, weight, breakable=breakable, short_des=short_des, syns=syns, adjs=adjs)
         self.status = True
-        self.funcs = funcs
+        if verbs == SENTINEL:
+            self.verbs = []
+        else:
+            self.verbs = verbs
+
+        if funcs == SENTINEL:
+            self.funcs = {}
+        else:
+            self.funcs = funcs
+
         self.classname = "obstacle"
 
     def print(self):
@@ -24,21 +34,29 @@ class Obstacle(Item):
 
 # Vault is a hybrid of an obstacle and a container - it can hold specific things, but also may act as a barrier
 class Vault(Item):
-    def __init__(self, name, type, des, weight, inv, breakable=False, short_des="", syns=[], adjs=[], verbs=[], funcs={}, req_locks=[], can_remove=True):
-        super().__init__(name, type, des, weight, breakable, short_des, syns, adjs)
-        self.verbs = verbs
+    def __init__(self, name, type, des, weight, inv, breakable=False, short_des="", syns=SENTINEL, adjs=SENTINEL, verbs=SENTINEL, funcs=SENTINEL, req_locks=[], can_remove=True):
+        super().__init__(name, type, des, weight, breakable=breakable, short_des=short_des, syns=syns, adjs=adjs)
         self.inv = inv
         self.req_locks = req_locks
         self.locked = True
         self.closed = True
-        self.funcs = funcs
+        if verbs == SENTINEL:
+            self.verbs = []
+        else:
+            self.verbs = verbs
+
+        if funcs == SENTINEL:
+            self.funcs = {}
+        else:
+            self.funcs = funcs
+
         self.can_remove = can_remove
         self.classname = 'vault'
 
 
 # This is a place which may contain items or obstacles and can be navigated through
 class Location:
-    def __init__(self, name, brief, inv, des="", n="", s="", e="", w="", ne="", nw="", se="", sw="", up="", down="", obstacles ={}, ob_messages={}):
+    def __init__(self, name, brief, inv, des="", n="", s="", e="", w="", ne="", nw="", se="", sw="", up="", down="", obstacles =SENTINEL, ob_messages=SENTINEL):
         self.name = name
         self.brief = brief
         self.des = des
@@ -54,8 +72,16 @@ class Location:
         self.down = down
         self.unexplored = True
         self.inv = inv
-        self.obstacles = obstacles
-        self.ob_messages = ob_messages
+
+        if obstacles == SENTINEL:
+            self.obstacles = {}
+        else:
+            self.obstacles = obstacles
+
+        if ob_messages == SENTINEL:
+            self.ob_messages = {}
+        else:
+            self.ob_messages = ob_messages
 
     def debug_print(self):
         print("------- " + self.name + "-------")
@@ -157,7 +183,7 @@ class Location:
                     my_print("des", self.inv.item_map[key].des)
             if self.obstacles:
                 for obstacle in self.obstacles.values():
-                    if obstacle.classname == 'container' or obstacle.classname == 'vault':
+                    if obstacle.classname == 'container':
                         my_print("des", obstacle.short_des)
                         if obstacle.inv.item_map:
                             my_print("des", "The " + obstacle.type + " contains:")

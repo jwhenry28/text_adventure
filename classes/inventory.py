@@ -1,9 +1,11 @@
 from classes.parser import mini_parse
 from website_utils.utils import my_print, my_input
 
+SENTINEL = None
+
 
 class Item:
-    def __init__(self, name, type, des, weight, breakable=False, short_des="", syns=[], adjs=[], traits=[]):
+    def __init__(self, name, type, des, weight, breakable=False, short_des="", syns=SENTINEL, adjs=SENTINEL, traits=SENTINEL):
         self.name = name      # Name should be 100% unique
         self.type = type      # Type does not need to be unique; will likely be what player types for direct object
         self.des = des        # Description (for 'examine' verb)
@@ -12,30 +14,49 @@ class Item:
         else:
             self.short_des = des
         self.weight = weight  # Between 1-100
-        self.adjs = adjs      # Should be unique to this item within a type - two items can't share type & an adjective
-        self.syns = syns      # No uniqueness required
-        self.traits = traits  # Needed to determine if item can do certain types of actions
+        if adjs == SENTINEL:  # Should be unique to this item within a type - two items can't share type & an adjective
+            self.adjs = []
+        else:
+            self.adjs = adjs
+
+        if syns == SENTINEL:  # No uniqueness required
+            self.syns = []
+        else:
+            self.syns = syns
+
+        if traits == SENTINEL:  # Needed to determine if item can do certain types of actions
+            self.traits = []
+        else:
+            self.traits = traits
         self.breakable = breakable
         self.classname = "item"
 
 
 # Containers are meant to be an item that can hold other items
 class Container(Item):
-    def __init__(self, name, type, des, weight, inv, breakable=False, short_des="", syns=[], adjs=[], verbs=[], funcs={}):
-        super().__init__(name, type, des, weight, breakable, short_des, syns, adjs)
-        self.verbs = verbs
+    def __init__(self, name, type, des, weight, inv, breakable=False, short_des="", syns=SENTINEL, adjs=SENTINEL, verbs=SENTINEL, funcs=SENTINEL):
+        super().__init__(name, type, des, weight, breakable=breakable, short_des=short_des, syns=syns, adjs=adjs)
         self.inv = inv
         self.closed = True
-        self.funcs = funcs
+        if verbs == SENTINEL:
+            self.verbs = []
+        else:
+            self.verbs = verbs
+
+        if funcs == SENTINEL:
+            self.funcs = {}
+        else:
+            self.funcs = funcs
+
         self.classname = "container"
 
 
 class Inventory:
-    def __init__(self, capacity, items=[]):
+    def __init__(self, capacity, items=SENTINEL):
         self.capacity = capacity
         self.weight = 0
         self.item_map = {}
-        if items:
+        if not items == SENTINEL:
             for item in items:
                 self.weight += item.weight
                 self.item_map.update({item.name : item})

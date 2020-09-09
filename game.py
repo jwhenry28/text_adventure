@@ -17,10 +17,10 @@ def local_game():
         command = input("> ")
         imp = regex_imperative(command)
 
-        # Route imperative
-        route_imperative(imp, context)
-
-        print('')
+        # Route imperative if something was given
+        if imp:
+            route_imperative(imp, context)
+            print('')
 
 
 # Game for the webserver
@@ -34,12 +34,13 @@ def server_game():
         command = my_input("> ")
         imp = regex_imperative(command)
 
-        # Route imperative
-        route_imperative(imp, context)
+        # Route imperative if something was given
+        if imp:
+            route_imperative(imp, context)
 
-        # Update server context metainfo
-        server_context.current_loc = context.map[context.current_loc].brief
-        server_context.moves += 1
+            # Update server context metainfo
+            server_context.current_loc = context.map[context.current_loc].brief
+            server_context.moves += 1
 
         # Break the barrier so the html file can be rendered properly
         server_context.html_barrier.wait()
