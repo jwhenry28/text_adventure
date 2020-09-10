@@ -15,7 +15,7 @@ def local_game():
     while True:
         # Gather input from player
         command = input("> ")
-        imp = regex_imperative(command)
+        imp = regex_imperative(context, command)
 
         # Route imperative if something was given
         if imp:
@@ -32,7 +32,7 @@ def server_game():
         # Gather input from server
         my_print("des", "")  # one newline
         command = my_input("> ")
-        imp = regex_imperative(command)
+        imp = regex_imperative(context, command)
 
         # Route imperative if something was given
         if imp:

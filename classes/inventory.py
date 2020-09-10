@@ -5,7 +5,7 @@ SENTINEL = None
 
 
 class Item:
-    def __init__(self, name, type, des, weight, breakable=False, short_des="", syns=SENTINEL, adjs=SENTINEL, traits=SENTINEL):
+    def __init__(self, name, type, des, weight, breakable=False, short_des="", syns=SENTINEL, adjs=SENTINEL, traits=SENTINEL, item_func=SENTINEL):
         self.name = name      # Name should be 100% unique
         self.type = type      # Type does not need to be unique; will likely be what player types for direct object
         self.des = des        # Description (for 'examine' verb)
@@ -28,6 +28,11 @@ class Item:
             self.traits = []
         else:
             self.traits = traits
+
+        if item_func == SENTINEL:
+            self.item_func = None
+        else:
+            self.item_func = item_func
         self.breakable = breakable
         self.classname = "item"
 

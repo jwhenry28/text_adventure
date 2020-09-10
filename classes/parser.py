@@ -1,6 +1,6 @@
 from nltk.tokenize import word_tokenize
-from website_utils.utils import my_print, my_input
-import re
+from website_utils.utils import my_print
+import re, copy
 
 
 class Imperative:
@@ -70,29 +70,33 @@ nounless_verbs = ["look"]
 directions = ["n", "s", "e", "w", "ne", "nw", "se", "sw", "u", "d",
               "north", "south", "east", "west", "northeast", "northwest", "southeast", "southwest", "up", "down"]
 verbs = ["go", "take", "drop", "kill", "open", "close", "look", "observe", "insert", "put", "place", "break", "chop",
-         "destroy", "equip"]
+         "destroy", "equip", "examine", "read"]
 nouns = ["north", "south", "east", "west", "northeast", "northwest", "southeast", "southwest", "n", "s", "e", "w", "ne",
          "nw", "se", "sw", "u", "d", "up", "down", "ax", "axe", "key", "keys", "troll", "door", "crowbar", "all",
          "sword", "bottle", "lunchbox", "lunch", "box", "fireplace", "vault", "keyhole", "lock", "tome", "book",
-         "manuscript"]
-adjectives = ["jade", "small", "copper", "rusty", "crystal", "red", "green", "wooden", "black", "white", "closet", "odd"]
+         "manuscript", "dequip"]
+adjectives = ["jade", "small", "copper", "rusty", "crystal", "red", "green", "wooden", "black", "white", "closet", "odd",
+              "farmhouse"]
 conjunctions = ["and"]
 prepositions = ["with", "on", "but", "in", "into"]
 
 
-def regex_imperative(command):
+def regex_imperative(context, command):
     movement_rule = \
-        "^(s(outh)?$|n(orth)?$|e(ast)?$|w(est)?$|south ?west|sw|south ?east|se|north ?west|nw|north ?east|ne|up|down)|u(p)?|d(own)?"
+        "^(go )?((s(outh)?)|(n(orth)?)|(e(ast)?)|(w(est)?)|(south ?west)|(sw)|(south ?east)|(se)|(north ?west)|(nw)|(north ?east)|(ne)|(up?)|(d(own)?))$"
+
     inventory_rule = "^inventory$|^inv$|^i$"
-    debug_rule = "^tp .*$"
-    pickup_rule = "^pick up .*$"
-    putton_rule = "^put on .*$"
+    debug_rule = "^tp.*$"
+    pickup_rule = "^pick up.*$"
+    putton_rule = "^put on.*$"
+    takeoff_rule = "^take off.*?"
 
     movement_check = re.search(movement_rule, command)
     inventory_check = re.search(inventory_rule, command)
     debug_check = re.search(debug_rule, command)
     pickup_check = re.search(pickup_rule, command)
     putton_check = re.search(putton_rule, command)
+    takeoff_check = re.search(takeoff_rule, command)
 
     imp = Imperative()
     ido_flag = False
@@ -111,6 +115,7 @@ def regex_imperative(command):
     # Fast move
     elif movement_check:
         imp.set_verb("go")
+        command = command.replace('go ', '')
         imp.set_noun([command])
         imp.set_nounq([])
         normal_parse = False
@@ -127,6 +132,10 @@ def regex_imperative(command):
         words.pop(0)
     elif putton_check:
         imp.set_verb("equip")
+        words.pop(0)
+        words.pop(0)
+    elif takeoff_check:
+        imp.set_verb("dequip")
         words.pop(0)
         words.pop(0)
     # Regular format
@@ -167,7 +176,7 @@ def regex_imperative(command):
         imp.set_noun([unknown])
         imp.set_nounq([])
 
-    imp.print()
+    context.orig_imp = copy.deepcopy(imp)
     return imp
 
 
@@ -186,6 +195,7 @@ def mini_parse(imp, clarification, ob_mode, adj_mode=False):
 
     # tmp used to store each individual item's adjectives
     tmp = []
+    unknown = None
     if not adj_flag:
         for word in words:
             # Nouns
@@ -210,6 +220,11 @@ def mini_parse(imp, clarification, ob_mode, adj_mode=False):
                 tmp = []
             else:
                 unknown = word
+
+        # Put bogus value in if unknown word encountered and no known
+        if unknown and not imp.noun:
+            imp.set_noun([unknown])
+            imp.set_nounq([])
     else:
         for word in words:
             # Adjectives

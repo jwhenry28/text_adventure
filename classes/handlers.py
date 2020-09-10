@@ -1,6 +1,5 @@
-import random
+import random, time
 from classes.parser import get_prep, mini_parse
-from classes.context import iron_boots
 from website_utils.utils import my_print, my_input
 
 
@@ -39,8 +38,10 @@ def move_handler(imp, context):
 
     full_map = {'north': 'north', 'n': 'north', 'south': 'south', 's': 'south',
                 'east': 'east', 'e': 'east', 'west': 'west', 'w': 'west',
-                'northeast': 'northeast', 'ne': 'northeast', 'northwest': 'northwest', 'nw': 'northwest',
-                'southeast': 'southeast', 'se': 'southeast', 'southwest': 'southwest', 'sw': 'southwest',
+                'northeast': 'northeast', 'ne': 'northeast', 'north east': 'northeast',
+                'northwest': 'northwest', 'nw': 'northwest', 'north west': 'northwest',
+                'southeast': 'southeast', 'se': 'southeast', 'south east': 'southeast',
+                'southwest': 'southwest', 'sw': 'southwest', 'south west': 'southwest',
                 'up': 'up', 'u': 'up', 'd': 'down', 'down': 'down'}
 
     dir_map = {'north': curr_loc.n, 'n': curr_loc.n, 'south': curr_loc.s, 's': curr_loc.s,
@@ -63,6 +64,10 @@ def move_handler(imp, context):
         my_print("des", ob_message)
     else:
         context.current_loc = new_loc
+        if 'heavy' in context.player.status:
+            my_print("des", "You struggle to move with the heavy load...")
+            time.sleep(1)
+
         context.map[new_loc].print_surroundings()
 MoveHandler = VerbFunction("move_handler", move_handler, False, False, do_missing="Where")
 
@@ -82,7 +87,6 @@ TpHandler = VerbFunction("tp_handler", tp_handler, False, False, do_missing="Whe
 
 # Equips an item to a player
 def equip_handler(imp, context):
-
     curr_loc = context.map[context.current_loc]
 
     for item in context.do:
@@ -94,6 +98,11 @@ def equip_handler(imp, context):
                 my_print("des", item.type + ": That's not something you can equip.")
 
         else:
+            # Make sure item isn't already equipped
+            if "equipped" in item.traits:
+                my_print("des", "That item is already equipped.")
+                continue
+
             if item.name not in context.player.inv.item_map:
                 if not context.player.inv.add_item(item):
                     my_print("des", "You're holding too many things already!")
@@ -107,7 +116,35 @@ def equip_handler(imp, context):
                 my_print("des", "Equipped.")
             else:
                 my_print("des", item.type + ": Equipped.")
+            item.traits.append("equipped")
 EquipHandler = VerbFunction("equip_handler", equip_handler, True, False)
+
+
+# Dequips an item from player
+def dequip_handler(imp, context):
+    curr_loc = context.map[context.current_loc]
+
+    for item in context.do:
+        # Notify player if not equipment
+        if item.classname != "equipment":
+            if len(context.do) == 1:
+                my_print("des", "That's not something you can de-equip.")
+            else:
+                my_print("des", item.type + ": That's not something you can de-equip.")
+
+        # Notify player if not equipped or not held
+        elif "equipped" not in item.traits:
+            my_print("des", "That isn't currently equipped.")
+
+        # De-equip item
+        else:
+            item.equip_func(imp, context)
+            if len(context.do) == 1:
+                my_print("des", "De-equipped.")
+            else:
+                my_print("des", item.type + ": De-equipped.")
+            item.traits.remove("equipped")
+DequipHandler = VerbFunction("dequip_handler", dequip_handler, True, False)
 
 
 # Adds an item to the player's inventory from the current location
@@ -249,9 +286,24 @@ def inv_handler(imp, context):
     if context.player.inv.weight == 0:
         my_print("des", "You are empty handed.")
     else:
+        # Assemble equipment and true inventory
+        equipment = []
+        true_inv = []
+        for item in context.player.inv.item_map.values():
+            if "equipped" in item.traits:
+                equipment.append(item)
+            else:
+                true_inv.append(item)
+
         my_print("des", "You are carrying:")
-        for item in context.player.inv.item_map:
-            my_print("des", context.player.inv.item_map[item].des)
+        for item in true_inv:
+            my_print("des", item.des)
+
+        if equipment:
+            my_print("des", "")
+            my_print("des", "You are wearing:")
+            for item in equipment:
+                my_print("des", item.des)
 InvHandler = VerbFunction("inv_handler", inv_handler, False, False)
 
 
@@ -286,13 +338,29 @@ def break_handler(imp, context):
 BreakHandler = VerbFunction("break_handler", break_handler, True, True)
 
 
-# def read_handler(imp, context):
-#     for page in context.do:
+def read_handler(imp, context):
+    for item in context.do:
+        if 'readable' not in item.traits:
+            if len(context.do) == 1:
+                my_print("des", "That's not something you can read.")
+            else:
+                my_print("des", item.name + ": " + "That's not something you can read.")
 
+        else:
+            item.item_func(imp, context)
+ReadHandler = VerbFunction("read_handler", read_handler, True, False)
+
+
+def examine_handler(imp, context):
+    if len(context.do) > 1:
+        my_print("des", "You can only examine one object at a time.")
+    else:
+        my_print("des", context.do[0].des)
+ExamineHandler = VerbFunction("examine_handler", examine_handler, True, False)
 
 
 verb_functions = {"go": MoveHandler, "move": MoveHandler, "run": MoveHandler, "walk": MoveHandler, "tp": TpHandler,
-                  "take": TakeHandler, "get": TakeHandler, "grab": TakeHandler, "obtain": TakeHandler, "remove": TakeHandler,
+                  "take": TakeHandler, "get": TakeHandler, "grab": TakeHandler, "obtain": TakeHandler,
                   "drop": DropHandler,
                   "open": OpenHandler,
                   "close": CloseHandler, "shut": CloseHandler, "slam": CloseHandler,
@@ -300,7 +368,10 @@ verb_functions = {"go": MoveHandler, "move": MoveHandler, "run": MoveHandler, "w
                   "put": PutHandler, "place": PutHandler, "insert": PutHandler,
                   "look": LookHandler, "observe": LookHandler,
                   "break": BreakHandler, "destroy": BreakHandler, "chop": BreakHandler,
-                  "equip": EquipHandler}
+                  "equip": EquipHandler,
+                  "dequip": DequipHandler, "remove": DequipHandler,
+                  "read": ReadHandler,
+                  "examine": ExamineHandler}
 
 
 def route_imperative(imp, context):
@@ -330,6 +401,7 @@ def route_imperative(imp, context):
 
     # If no DO was found and you need one, you must exit
     if not context.do and VerbFunc.do_bool:
+        my_print("log", "No DO found when one was needed")
         context.refresh
         return
 

@@ -2,28 +2,12 @@ from classes.player import Player
 from classes.locations import Location, Obstacle, Vault
 from classes.inventory import Item, Inventory, Container
 from classes.player import Equipment
+from classes.parser import Imperative
 from website_utils.utils import my_print
 
 
 BLOCKED = None
-
-
-# Equipment
-def iron_boots_func(imp, context):
-    river1 = context.map["river cross1"]
-    river2 = context.map["river cross2"]
-    homestead = context.map["homestead"]
-
-    if imp.verb == "equip":
-        river1.nw = "homestead"
-        river2.e = "homestead"
-        homestead.se = "river cross1"
-        homestead.w = "river cross2"
-
-
-
-iron_boots = Equipment("iron boots", "boots", "A set of sturdy iron boots", 50, syns=["boots", "shoes", "iron"],
-                           adjs=["iron", "heavy", "metal"], equip_func=iron_boots_func)
+EMPTY_IMP = Imperative()
 
 
 class Context:
@@ -37,6 +21,8 @@ class Context:
         self.ido = []
         self.tmp_items = []
         self.mode = 'do'
+        self.orig_imp = EMPTY_IMP
+        self.limbo = None
 
     def toggle_mode(self):
         if self.mode == 'do':
@@ -49,6 +35,7 @@ class Context:
         self.ido = []
         self.tmp_items = []
         self.mode = 'do'
+        self.orig_imp = EMPTY_IMP
 
     def print(self):
         print("\nLOCATION       : " + self.current_loc)
@@ -121,6 +108,24 @@ class Context:
         my_print("des", "You can't see any such thing.")
 
 
+# Item functions
+def library_tome_func(imp, context):
+    strange_circle = context.map["strange circle"]
+    odd_monolith = strange_circle.obstacles["odd monolith"]
+    odd_monolith.des = \
+        "This is an odd stone sitting in the middle of the circle. Like its monolithic counterparts, it appears to be quarried from a dull stone long ago. Several lines of sanskrit are carved into the stone in some ancient language, but you can now read them. They say: 'A stone knight, bathed in moonlight, was always a beautiful sight.'"
+
+    if "literate" not in context.player.status:
+        my_print("des",
+                 "You open the tome to reveal pages of sanskrit writing. As you pore over line after line of text, it" +
+                 " starts to make more sense. Suddenly, everything clicks and you can read every word.")
+        context.player.status.append("literate")
+    else:
+        my_print("des", "You open the tome to reveal pages of sanskrit writing. Having already read through the book" +
+                 " once, you learn nothing new.")
+
+
+# Obstacle functions
 def farmhousew_door_func(imp, context):
     farmhousew = context.map["farmhouse west"]
     kitchen = context.map["kitchen"]
@@ -165,6 +170,9 @@ def farmhousee_door_func(imp, context):
 def hunting_closet_door_func(imp, context):
     kitchen = context.map["kitchen"]
     door = kitchen.obstacles["hunting closet door"]
+
+    iron_boots = context.limbo.inv.item_map['iron boots']
+
     if door.status:
         if "taken" not in iron_boots.traits:
             my_print("des", "You swing the door open revealing a small equipment closet. An iron pair of boots are in the closet. They look heavy enough to hold someone down against considerable force.")
@@ -207,6 +215,30 @@ def barnhouse_door_func(imp, context):
     my_print("des", "You smash the door to splinters revealing " + msg)
 
 
+# Equipment functions
+def iron_boots_func(imp, context):
+    river1 = context.map["river cross1"]
+    river2 = context.map["river cross2"]
+    homestead = context.map["homestead"]
+
+    if imp.verb == "equip":
+        river1.nw = "homestead"
+        river2.e = "homestead"
+        homestead.se = "river cross1"
+        homestead.w = "river cross2"
+        context.player.status.append("heavy")
+        my_print("des", "You can still move, but the iron boots weigh you down significantly.")
+
+    else:
+        river1.nw = BLOCKED
+        river2.e = BLOCKED
+        homestead.se = BLOCKED
+        homestead.w = BLOCKED
+        context.player.status.remove("heavy")
+        my_print("des", "You feel a tremendous weight lifted from your feet. Oh right - you were wearing boots of solid iron...")
+
+
+# Vault functions
 def fireplace_vault_func(imp, context):
     fire_room = context.map["fire room"]
     fireplace = fire_room.obstacles["adorned fireplace"]
@@ -251,31 +283,40 @@ def gen_context():
                     adjs=["vintage", "metal"])
     kitchen_inv = Inventory(100000, [bottle, lunchbox])
 
-    tome = Item("tome", "tome", "An ancient tome", 5, syns=["tome", "book", "manuscript"], adjs=["old", "ancient"])
+    tome = Item("tome", "tome", "An ancient tome", 5, syns=["tome", "book", "manuscript"], adjs=["old", "ancient"],
+                traits=["readable"], item_func=library_tome_func)
     library_inv = Inventory(100000, [tome])
 
     # Obstacles
-    farmhousew_door = Obstacle("farmhouse west door", "door", "A sturdy looking door, painted black", 101,
+    farmhousew_door = Obstacle("farmhouse west door", "farmhouse door", "A sturdy looking door, painted black", 101,
                                verbs=["open", "push", "enter"], syns=["door"], adjs=["black"],
                                funcs={"open": farmhousew_door_func, "close": farmhousew_door_func, "slam": farmhousew_door_func})
-    farmhousee_door = Obstacle("farmhouse east door", "door", "A sturdy looking door, painted red", 101,
+    farmhousee_door = Obstacle("farmhouse east door", "farmhouse door", "A sturdy looking door, painted red", 101,
                                verbs=["open", "push", "enter"], syns=["door"], adjs=["red"],
                                funcs={"open": farmhousee_door_func, "close": farmhousee_door_func, "slam": farmhousew_door_func})
-    barnhouse_door = Obstacle("barnhouse door", "door", "A deteriorating wooden door", 101,
+    barnhouse_door = Obstacle("barnhouse door", "barn door", "A deteriorating wooden door", 101,
                               breakable=True, verbs=["break", "chop", "destroy"], syns=["door"], adjs=["wooden"],
                               funcs={"break": barnhouse_door_func, "open": barnhouse_door_func})
-    hunting_closet_door = Obstacle("hunting closet door", "door", "A white closet door", 101,
+    hunting_closet_door = Obstacle("hunting closet door", "closet door", "A white closet door", 101,
                                    verbs=["open", "push", "enter"], syns=["door"], adjs=["white", "closet"],
                                    funcs={"open": hunting_closet_door_func, "close": hunting_closet_door_func, "slam": hunting_closet_door_func})
+
+    # Equipment
+    iron_boots = Equipment("iron boots", "boots", "A set of sturdy iron boots", 50, syns=["boots", "shoes", "iron"],
+                           adjs=["iron", "heavy", "metal"], equip_func=iron_boots_func)
 
     # Vaults
     fireplace_vault = Vault("adorned fireplace", "fireplace", "This is a beautifully adorned fireplace crafted from dozens of polished gems and precious stones. Three keyholes lie in a trifecta; one in rusted red-green metal, one in vibrant and polished green, and the last in shining quartz.",
                             101, short_des="An adorned fireplace", inv=Inventory(3, []), verbs=["insert", "unlock"], syns=["fireplace", "vault", "keyhole", "lock"],
                             funcs={"insert": fireplace_vault_func, "open": fireplace_vault_func, "close": fireplace_vault_func},
                             can_remove=False, req_locks=["copper key", "jade key", "crystal key"])
-    odd_monolith = Vault("odd monolith", "monolith", "This is an odd stone sitting in the middle of the circle. Like its monolithic counterparts, it appears to be quarried from a dull stone long ago. Three lines of sanskrit are carved into the stone in some ancient language.",
-                         101, short_des="An odd stone", inv=Inventory(0), verbs=[], syns=["monolith", "stone"],
+    odd_monolith = Vault("odd monolith", "monolith", "This is an odd stone sitting in the middle of the circle. Like its monolithic counterparts, it appears to be quarried from a dull stone long ago. Several lines of sanskrit are carved into the stone in some ancient language, but you cannot read it.",
+                         101, short_des="An odd stone", inv=Inventory(0), verbs=[], syns=["monolith", "stone", "stones", "circle"],
                          can_remove=False)
+
+    # Limbo is used to "store" items which are not initially anywhere on the map but are made accessible by later events
+    limbo_inv = Inventory(100000, [iron_boots])
+    limbo = Location("limbo", "Limbo", limbo_inv, "You are in limbo. You really shouldn't be here...")
 
     # Locations
     cornfield1 = Location("cornfield south", "Cornfield South", Inventory(100000),
@@ -393,7 +434,7 @@ def gen_context():
                           "This is a well-used path through the forest. A variety of animal tracks are imprinted in the dirt. The path continues to the south and northeast.",
                           s="strange circle", ne="turkey blind")
     circle = Location("strange circle", "Strange Circle", Inventory(100000),
-                      "You are in a forest clearing that can only be described as odd. A circle of worn monolithic stones stand silent vigil in the center of the clearing. The grass is slightly browned in a way that creates intricate patterns around the stones. Paths branch off to the north, south, and east. You cannot shake the feeling that you are being watched...",
+                      "You are in a forest clearing that can only be described as odd. A circle of worn stones stand silent vigil in the center of the clearing surrounding a single monolith. The grass is slightly browned in a way that creates intricate patterns around the stones. Paths branch off to the north, south, and east. You cannot shake the feeling that you are being watched...",
                       n="forest path1", s="forest path2", e="large oak",
                       obstacles={odd_monolith.name: odd_monolith})
     oak = Location("large oak", "Large Oak", Inventory(100000),
@@ -424,5 +465,6 @@ def gen_context():
     player = Player()
 
     context = Context(player, map)
+    context.limbo = limbo
 
     return context

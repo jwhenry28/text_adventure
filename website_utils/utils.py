@@ -64,8 +64,12 @@ def my_print(node_type, *argv):
     log_tags = {'crit': '[CRITICAL]', 'err': '[ERROR]   ', 'log': '[INFO]    '}
 
     # Console if local
-    if server_context.mode == 'local' and node_type not in logs:
-        print(complete_msg)
+    if server_context.mode == 'local':
+        if node_type in logs:
+            log_tag = log_tags[node_type]
+            print("- {} ----- {}".format(log_tag, complete_msg))
+        else:
+            print(complete_msg)
 
     # Webpage if server - also print logs (only for server)
     elif server_context.mode == 'server':
