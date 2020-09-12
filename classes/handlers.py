@@ -1,6 +1,6 @@
 import random, time
 from classes.parser import get_prep, mini_parse
-from website_utils.utils import my_print, my_input
+from website_utils.utils import my_print, my_input, server_context
 
 
 BLOCKED = None
@@ -66,7 +66,9 @@ def move_handler(imp, context):
         context.current_loc = new_loc
         if 'heavy' in context.player.status:
             my_print("des", "You struggle to move with the heavy load...")
-            time.sleep(1)
+            server_context.html_barrier.wait()
+            time.wait(1)
+
 
         context.map[new_loc].print_surroundings()
 MoveHandler = VerbFunction("move_handler", move_handler, False, False, do_missing="Where")

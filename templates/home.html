@@ -5,12 +5,45 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Joseph</title>
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/template.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
 
 </head>
 <body>
     {% extends "template.html" %}
     {% block content %}
+
+    <div class="navbar">
+        <a href="/game">Leiper</a>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap;">
+        <div style="flex: 30%; padding: 20px; padding-left: 20px; padding-right: 20px; background-color: #aaa;">
+            <h2 style="color: white;">About Me</h2>
+            <div style="background-image:url('static/images/headshot_cropped.jpg');background-size:cover;height:450px;"></div>
+            <p style="line-height: 2; text-align: center; color: white;">I am a computer science student studying at the University of Chicago. I initially built this website as a
+                means of showcasing a <a href="/game">text adventure game</a> I wrote. I am currently studying to begin a career in Offensive Security. I
+                love learning new things and working difficult problems. </p>
+        </div>
+        <div style="flex: 70%; padding: 20px; padding-left: 20px; background-color: white;">
+            <h2>Welcome</h2>
+            <p style="line-height: 2; text-align: left; color: black;">Welcome to my personal website/blog! I will be posting things here that I find
+                intriguing. This blog is really just a way for me to learn some front-end skills and showcase a few projects I will be working on
+                throughout the year. So welcome!</p>
+            <h4>Leiper: A Text Based Adventure in Python</h4>
+            <p style="line-height: 2; text-align: left; color: black;">My first project is a text adventure game called <i>Leiper</i>. I've always loved
+                <i>Zork: The Underground Empire</i>. However, I've only recently began appreciating it for the coding marvel that it is. The
+                <strong>Infocom</strong> written parser that operated as the heart of <i>Zork</i> is truly genius, being able to handle
+                some fairly non-intuitive and complex English sentences. I've long wanted to write my own parser, and I finally have been able to get it
+                done. My initial plan was to use the Natural Language Toolkit, but this ended up being too cumbersome and heavyweight for my purposes.
+                I settled on a pre-written dictionary dictated by some simple rules written in Regular Expression and some coding logic. The parser essentially reads in an imperative
+                sentence, extracts the verb/action, all direct objects, all indirect objects, and each object's respective adjectives (if any) before
+                compacting all of this information in a neat data structure and passing it off to the state modifier. The parser is nothing to gloat
+                about, but I will say it is far more elegant and flexible and a tangle of if-else ladders dictating the behavior for each preselected
+                command. </p>
+            <p style="line-heightL 2; text-align: left; color: black;">You can check out the main repository
+                <a href="https://github.com/jwhenry28/text_adventure">here</a> </p>
+        </div>
+    </div>
 
     {% endblock %}
 </body>

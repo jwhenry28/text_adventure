@@ -1,3 +1,4 @@
+import time
 from classes.parser import regex_imperative
 from classes.handlers import route_imperative
 from classes.context import gen_context
@@ -9,6 +10,10 @@ context = gen_context()
 
 # Meant for playing on console - really just to easily design & debug
 def local_game():
+    # Heavy status here
+    if "heavy" in context.player.status:
+        time.sleep(1)
+
     context.map[context.current_loc].print_surroundings()
 
     # Game loop
@@ -20,6 +25,9 @@ def local_game():
         # Route imperative if something was given
         if imp:
             route_imperative(imp, context)
+            print('')
+        else:
+            my_print("des", "I beg your pardon?")
             print('')
 
 
@@ -41,6 +49,8 @@ def server_game():
             # Update server context metainfo
             server_context.current_loc = context.map[context.current_loc].brief
             server_context.moves += 1
+        else:
+            my_print("des", "I beg your pardon?")
 
         # Break the barrier so the html file can be rendered properly
         server_context.html_barrier.wait()
