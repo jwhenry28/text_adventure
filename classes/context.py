@@ -190,6 +190,25 @@ def hunting_closet_door_func(imp, context):
         door.status = True
 
 
+def tower_base_door_func(imp, context):
+    tower_base = context.map["tower base"]
+    tower_library = context.map["tower library"]
+    door = tower_base.obstacles["tower base door"]
+    if door.status:
+        my_print("des", "You swing the door open.")
+        tower_library.e = "tower base"
+        tower_base.w = "tower library"
+        door.status = False
+    else:
+        if imp.verb == 'slam':
+            my_print("des", "You slam the door shut. Jeez, be gentle...")
+        else:
+            my_print("des", "You close the door shut.")
+        tower_library.e = BLOCKED
+        tower_base.w = BLOCKED
+        door.status = True
+
+
 def barnhouse_door_func(imp, context):
     if imp.verb == 'open':
         my_print("des", "The door gives slightly, but it won't budge.")
@@ -215,7 +234,7 @@ def barnhouse_door_func(imp, context):
     my_print("des", "You smash the door to splinters revealing " + msg)
 
 
-# Equipment functions
+# Equipment and container functions
 def iron_boots_func(imp, context):
     river1 = context.map["river cross1"]
     river2 = context.map["river cross2"]
@@ -237,6 +256,12 @@ def iron_boots_func(imp, context):
         context.player.status.remove("heavy")
         my_print("des", "You feel a tremendous weight lifted from your feet. Oh right - you were wearing boots of solid iron...")
 
+
+# def kitchen_lunchbox_func(imp, context):
+#     kitchen = context.map["kitchen"]
+#     lunchbox = kitchen.inv.item_map["lunchbox"]
+#
+#     if lunchbox.closed:
 
 # Vault functions
 def fireplace_vault_func(imp, context):
@@ -279,8 +304,8 @@ def gen_context():
     keyring = Inventory(100000, [copper_key, jade_key, crystal_key])
 
     bottle = Item("bottle", "bottle", "A clear glass soda bottle", 1, syns=["bottle"], adjs=["glass", "clear"])
-    lunchbox = Item("lunchbox", "lunchbox", "A vintage metal lunchbox", 2, syns=["lunchbox", "box"],
-                    adjs=["vintage", "metal"])
+    lunchbox = Container("lunchbox", "lunchbox", "A vintage metal lunchbox", 2, syns=["lunchbox", "box"],
+                    adjs=["vintage", "metal"], verbs=["open", "close"])
     kitchen_inv = Inventory(100000, [bottle, lunchbox])
 
     tome = Item("tome", "tome", "An ancient tome", 5, syns=["tome", "book", "manuscript"], adjs=["old", "ancient"],
@@ -298,8 +323,11 @@ def gen_context():
                               breakable=True, verbs=["break", "chop", "destroy"], syns=["door"], adjs=["wooden"],
                               funcs={"break": barnhouse_door_func, "open": barnhouse_door_func})
     hunting_closet_door = Obstacle("hunting closet door", "closet door", "A white closet door", 101,
-                                   verbs=["open", "push", "enter"], syns=["door"], adjs=["white", "closet"],
+                                   verbs=["open", "push", "enter"], syns=["door", "closet"], adjs=["white"],
                                    funcs={"open": hunting_closet_door_func, "close": hunting_closet_door_func, "slam": hunting_closet_door_func})
+    tower_base_door = Obstacle("tower base door", "tower door", "A thick oaken door with an iron ring", 101,
+                               verbs=["open", "push", "enter"], syns=["door"], adjs=[],
+                               funcs={"open": tower_base_door_func, "close": tower_base_door_func,"slam": tower_base_door_func})
 
     # Equipment
     iron_boots = Equipment("iron boots", "boots", "A set of sturdy iron boots", 50, syns=["boots", "shoes", "iron"],
@@ -411,10 +439,12 @@ def gen_context():
                       e="tire tracks1", w="tower base")
     tower_base = Location("tower base", "Lonesome Tower", Inventory(100000),
                      "This is a large tower with a turret roof. The tower has a single door and several windows. The forest is very dense here. Dirt tracks run off to the east.",
-                     e="tire tracks2", w="tower library")
+                     e="tire tracks2", w=BLOCKED,
+                     obstacles={tower_base_door.name: tower_base_door}, ob_messages={"west": "The door is closed shut."})
     tower_library = Location("tower library", "Tower Library", library_inv,
                              "This is a ransacked old library. Two massive chandeliers hang from the ceiling. The library was likely quite beautiful in its prime, but very little remains. As luck would have it, one large tome sits in the corner of a back shelf. A ladder is bolted to the side of the wall, leading to a small opening in the ceiling.",
-                             e="tower base", up="tower study")
+                             e=BLOCKED, up="tower study",
+                             obstacles={tower_base_door.name: tower_base_door}, ob_messages={"east": "The door is closed shut."})
     tower_study = Location("tower study", "Tower Study", Inventory(100000),
                            "This is a well-used study, just as ransacked as the library below. You can see the library below you through the hatch. The ladder continues upwards.",
                            up="tower laboratory", down="tower library")

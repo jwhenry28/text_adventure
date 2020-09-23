@@ -74,8 +74,8 @@ verbs = ["go", "take", "drop", "kill", "open", "close", "look", "observe", "inse
 nouns = ["north", "south", "east", "west", "northeast", "northwest", "southeast", "southwest", "n", "s", "e", "w", "ne",
          "nw", "se", "sw", "u", "d", "up", "down", "ax", "axe", "key", "keys", "troll", "door", "crowbar", "all",
          "sword", "bottle", "lunchbox", "lunch", "box", "fireplace", "vault", "keyhole", "lock", "tome", "book",
-         "manuscript", "dequip"]
-adjectives = ["jade", "small", "copper", "rusty", "crystal", "red", "green", "wooden", "black", "white", "closet", "odd",
+         "manuscript", "dequip", "closet"]
+adjectives = ["jade", "small", "copper", "rusty", "crystal", "red", "green", "wooden", "black", "white", "odd",
               "farmhouse"]
 conjunctions = ["and"]
 prepositions = ["with", "on", "but", "in", "into"]
