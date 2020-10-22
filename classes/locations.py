@@ -52,6 +52,7 @@ class Vault(Item):
 
         self.can_remove = can_remove
         self.classname = 'vault'
+        self.closable = True
 
 
 # This is a place which may contain items or obstacles and can be navigated through
@@ -73,15 +74,23 @@ class Location:
         self.unexplored = True
         self.inv = inv
 
+        for item in inv.item_map.values():
+            item.container = self
+
         if obstacles == SENTINEL:
             self.obstacles = {}
         else:
             self.obstacles = obstacles
 
+        for obstacle in self.obstacles.values():
+            obstacle.container = self
+
         if ob_messages == SENTINEL:
             self.ob_messages = {}
         else:
             self.ob_messages = ob_messages
+
+        self.classname = "location"
 
     def debug_print(self):
         print("------- " + self.name + "-------")
@@ -106,7 +115,7 @@ class Location:
             print(obstacle.name)
 
     # Searches location inventory and each container/vault's inventories
-    def remove_item(self, item, player):
+    def remove_item(self, item):
         # Check own inventory
         if item.name in self.inv.item_map:
             self.inv.remove_item(item)
@@ -177,16 +186,30 @@ class Location:
             self.unexplored = False
             my_print("des", self.des)
 
-            if self.inv.weight > 0:
+            all_hidden = True
+            for item in self.inv.item_map.values():
+                if not item.hidden:
+                    all_hidden = False
+
+            if self.inv.weight > 0 and not all_hidden:
                 my_print("des", "There is:")
-                for key in self.inv.item_map:
-                    my_print("des", self.inv.item_map[key].des)
+                for object in self.inv.item_map.values():
+                    if not object.hidden:
+                        my_print("des", object.des)
+                        if object.classname == 'container':
+                            if object.inv.item_map and not object.closed:
+                                my_print("des", "The " + object.type + " contains:")
+                                for item in object.inv.item_map.values():
+                                    if not item.hidden:
+                                        prep = get_prep(item.name[0])
+                                        my_print("des", prep.title() + " " + item.name)
             if self.obstacles:
                 for obstacle in self.obstacles.values():
-                    if obstacle.classname == 'container':
+                    if obstacle.classname == 'container' and not obstacle.hidden:
                         my_print("des", obstacle.short_des)
                         if obstacle.inv.item_map:
                             my_print("des", "The " + obstacle.type + " contains:")
                             for item in obstacle.inv.item_map.values():
-                                prep = get_prep(item.name[0])
-                                my_print("des", prep.title() + " " + item.name)
+                                if not item.hidden:
+                                    prep = get_prep(item.name[0])
+                                    my_print("des", prep.title() + " " + item.name)

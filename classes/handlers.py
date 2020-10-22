@@ -66,9 +66,9 @@ def move_handler(imp, context):
         context.current_loc = new_loc
         if 'heavy' in context.player.status:
             my_print("des", "You struggle to move with the heavy load...")
-            server_context.html_barrier.wait()
-            time.wait(1)
-
+            if context.type == "server":
+                server_context.html_barrier.wait()
+            time.sleep(1)
 
         context.map[new_loc].print_surroundings()
 MoveHandler = VerbFunction("move_handler", move_handler, False, False, do_missing="Where")
@@ -119,6 +119,7 @@ def equip_handler(imp, context):
             else:
                 my_print("des", item.type + ": Equipped.")
             item.traits.append("equipped")
+            item.container = context.player
 EquipHandler = VerbFunction("equip_handler", equip_handler, True, False)
 
 
@@ -152,36 +153,52 @@ DequipHandler = VerbFunction("dequip_handler", dequip_handler, True, False)
 # Adds an item to the player's inventory from the current location
 def take_handler(imp, context):
     curr_loc = context.map[context.current_loc]
+
     for item in context.do:
+        # Define premessage
+        if len(context.do) == 1:
+            premessage = ""
+        else:
+            premessage = item.type + ": "
+
         # Skip if item is in inventory (would only apply if user selected "all")
         if item.name in context.player.inv.item_map:
+            if not context.all:
+                my_print("des", premessage + "You're holding that already.")
+            continue
+
+        # Skip if item is a liquid
+        if "liquid" in item.traits:
+            my_print("des", premessage + "You should find something to put that in.")
             continue
 
         # Make sure you can remove this item from the location
-        if not curr_loc.remove_item(item, context.player):
-            if len(context.do) == 1:
-                my_print("des", random.choice(obstacle_messages))
-            else:
-                my_print("des", item.type + ": " + random.choice(obstacle_messages))
-            continue
+        if item.container.classname == "location":
+            if not curr_loc.remove_item(item):
+                my_print("des", premessage + random.choice(obstacle_messages))
+                continue
+        else:
+            if not item.container.inv.remove_item(item):
+                my_print("err", "Tried to remove", item.name, "from", item.container.name, "but failed.")
+                return
 
         # Make sure the player can hold this item
         if not context.player.inv.add_item(item):
-            my_print("des", "You're holding too many things already!")
+            my_print("des", premessage + "You're holding too many things already!")
             curr_loc.inv.add_item(item)
             continue
 
-        if len(context.do) == 1:
-            if imp.verb == "obtain":
-                my_print("des", "'Obtained'. Did you really have to use that word Mr. Thesaurus?")
-            else:
-                my_print("des", "Taken.")
+        if imp.verb == "obtain":
+            my_print("des", premessage + "'Obtained'. Did you really have to use that word Mr. Thesaurus?")
         else:
-            my_print("des", item.type + ": Taken.")
+            my_print("des", premessage + "Taken.")
 
         if "taken" not in item.traits:
             item.traits.append("taken")
-TakeHandler = VerbFunction("take_handler", take_handler, True, False, dont_search=['inventory'])
+        if item.take_func:
+            item.take_func(imp, context)
+        item.container = context.player
+TakeHandler = VerbFunction("take_handler", take_handler, True, False)
 
 
 # Removes an item from the player's inventory
@@ -211,6 +228,7 @@ def drop_handler(imp, context):
             my_print("des", item.type + ": Dropped.")
 
         item.traits.remove("taken")
+        item.conatiner = curr_loc
 DropHandler = VerbFunction("drop_handler", drop_handler, True, False, dont_search=['surroundings', 'obstacles'])
 
 
@@ -241,6 +259,8 @@ def close_handler(imp, context):
         elif obstacle.classname == 'container' or obstacle.classname == 'vault':
             if obstacle.closed:
                 my_print("des", "The " + obstacle.type + " is already closed.")
+            elif not obstacle.closable:
+                my_print("des", "That's not something you can close.")
             else:
                 obstacle.funcs[imp.verb](imp, context)
         else:
@@ -254,32 +274,73 @@ def put_handler(imp, context):
         my_print("des", "You can't use multiple objects with that verb.")
         return
 
-    object = context.do[0]
     container = context.ido[0]
 
-    # Make sure player didn't try to put an item inside of itself
-    if object.name == container.name:
-        my_print("des", "There are two types of people in this world: Those who don't believe in infinite recursion and those that believe 'There are two types of people in this world...'")
-        return
+    for object in context.do:
+        # Define pre-message to potentially append to print statements.
+        if len(context.do) == 1:
+            premessage = ""
+        else:
+            premessage = object.type + ": "
 
-    # Make sure the IDO is actually a container
-    if container.classname == 'vault':
-        imp.set_verb("insert")
-        container.funcs[imp.verb](imp, context)
-        return
-    if container.classname != 'container':
-        my_print("des", "That can't contain things.")
-        return
+        # Make sure player didn't try to put an item inside of itself or item is not holding container
+        if object.name == container.name:
+            my_print("des", premessage + "'There are two types of people in this world: Those who don't believe in infinite recursion and those that believe 'There are two types of people in this world...''")
+            continue
 
-    # Move item out of inventory and into container
-    if not container.inv.add_item(object):
-        my_print("des", "The " + container.name + " is already full.")
-        return
+        # Make sure object is not holding container
+        if container.container.name == object.name:
+            my_print("des", premessage + "The " + object.type + " is already holding the " + container.type + ".")
+            continue
 
-    if not context.player.inv.remove_item(object):
-        my_print("des", "ERROR: Laws of physics have been broken. Or maybe somebody's code just isn't calculating correctly...")
-        return
+        # Make sure object is not already in container
+        if object.name in container.inv.item_map:
+            my_print("des", premessage + "The " + object.type + " is already inside of the " + container.type + ".")
+            continue
 
+        # Make sure the IDO is actually a container
+        if container.classname == 'vault':
+            imp.set_verb("insert")
+            container.funcs[imp.verb](imp, context)
+            continue
+        if container.classname != 'container':
+            my_print("des", premessage + "That can't contain things.")
+            continue
+
+        # Check to make sure container is open and has room
+        if container.closed:
+            my_print("des", premessage + "The " + container.name + " is not open.")
+            continue
+
+        # Divert to liquid function if needed
+        if "liquid" in object.traits:
+            try:
+                imp.set_verb("fill")
+                container.funcs[imp.verb](imp, context)
+            except:
+                my_print("des", premessage + "It's best not to put that in there.")
+            continue
+
+        if not container.inv.add_item(object):
+            if object.weight > container.inv.capacity:
+                my_print("des", premessage + "You can't possibly fit that in there!")
+            else:
+                my_print("des", premessage + "The " + container.name + " is already full.")
+            continue
+
+        # Remove from player's inventory if necessary
+        if object.name in context.player.inv.item_map:
+            if not context.player.inv.remove_item(object):
+                my_print("err", "put_handler: failed to remove", object.name, "from player inventory.")
+
+        # Otherwise, remove from environment
+        elif object.name in context.map[context.current_loc].inv.item_map:
+            my_print("des", "(first taking the " + object.name + ")")
+            if not context.map[context.current_loc].inv.remove_item(object):
+                my_print("err", "put_handler: failed to remove", object.name, "from surrounding.")
+
+        object.container = container
+        my_print("des", premessage + "You put the " + object.name + " in the " + container.name + ".")
     return
 PutHandler = VerbFunction("put_handler", put_handler, True, True, ido_missing="Where")
 
@@ -300,6 +361,10 @@ def inv_handler(imp, context):
         my_print("des", "You are carrying:")
         for item in true_inv:
             my_print("des", item.des)
+            if item.classname == "container" and item.inv.item_map:
+                my_print("des", "The " + item.name + " contains:")
+                for sub_item in item.inv.item_map.values():
+                    my_print("des", sub_item.des)
 
         if equipment:
             my_print("des", "")
@@ -361,6 +426,16 @@ def examine_handler(imp, context):
 ExamineHandler = VerbFunction("examine_handler", examine_handler, True, False)
 
 
+def liquid_handler(imp, context):
+    if context.do and context.do[0].classname == "container":
+        bucket = context.do[0]
+    elif context.ido and context.ido[0].classname == "container":
+        bucket = context.ido[0]
+
+    bucket.funcs[imp.verb](imp, context)
+LiquidHandler = VerbFunction("liquid_handler", liquid_handler, True, True)
+
+
 verb_functions = {"go": MoveHandler, "move": MoveHandler, "run": MoveHandler, "walk": MoveHandler, "tp": TpHandler,
                   "take": TakeHandler, "get": TakeHandler, "grab": TakeHandler, "obtain": TakeHandler,
                   "drop": DropHandler,
@@ -373,7 +448,8 @@ verb_functions = {"go": MoveHandler, "move": MoveHandler, "run": MoveHandler, "w
                   "equip": EquipHandler,
                   "dequip": DequipHandler, "remove": DequipHandler,
                   "read": ReadHandler,
-                  "examine": ExamineHandler}
+                  "examine": ExamineHandler,
+                  "fill": LiquidHandler, "pour": LiquidHandler, "empty": LiquidHandler}
 
 
 def route_imperative(imp, context):

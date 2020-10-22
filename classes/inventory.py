@@ -5,7 +5,7 @@ SENTINEL = None
 
 
 class Item:
-    def __init__(self, name, type, des, weight, breakable=False, short_des="", syns=SENTINEL, adjs=SENTINEL, traits=SENTINEL, item_func=SENTINEL):
+    def __init__(self, name, type, des, weight, hidden=False, breakable=False, short_des="", take_func=SENTINEL, syns=SENTINEL, adjs=SENTINEL, traits=SENTINEL, item_func=SENTINEL):
         self.name = name      # Name should be 100% unique
         self.type = type      # Type does not need to be unique; will likely be what player types for direct object
         self.des = des        # Description (for 'examine' verb)
@@ -33,16 +33,26 @@ class Item:
             self.item_func = None
         else:
             self.item_func = item_func
+
+        if take_func == SENTINEL:
+            self.take_func = None
+        else:
+            self.take_func = take_func
         self.breakable = breakable
+        self.hidden = hidden
         self.classname = "item"
+        self.container = None
 
 
 # Containers are meant to be an item that can hold other items
 class Container(Item):
-    def __init__(self, name, type, des, weight, inv, breakable=False, short_des="", syns=SENTINEL, adjs=SENTINEL, verbs=SENTINEL, funcs=SENTINEL):
+    def __init__(self, name, type, des, weight, inv, breakable=False, closable=True, short_des="", syns=SENTINEL, adjs=SENTINEL, verbs=SENTINEL, funcs=SENTINEL):
         super().__init__(name, type, des, weight, breakable=breakable, short_des=short_des, syns=syns, adjs=adjs)
         self.inv = inv
-        self.closed = True
+        if not closable:
+            self.closed = False
+        else:
+            self.closed = True
         if verbs == SENTINEL:
             self.verbs = []
         else:
@@ -54,6 +64,15 @@ class Container(Item):
             self.funcs = funcs
 
         self.classname = "container"
+        self.closable = closable
+
+    def container_print(self):
+        print("name:", self.name)
+        print("closed:", self.closed)
+        print("--- inv ---")
+        for item in self.inv.item_map.values():
+            print(item.name)
+        print('')
 
 
 class Inventory:
@@ -101,9 +120,13 @@ class Inventory:
     def find(self, imp, context, item_name, item_adjs):
         # Add all possible items to tmp_items
         tmp_items = []
-        for key in self.item_map:
-            if item_name in self.item_map[key].syns:
-                tmp_items.append(self.item_map[key])
+        for item in self.item_map.values():
+            if item_name in item.syns:
+                tmp_items.append(item)
+            if item.classname == "container":
+                for sub_item in item.inv.item_map.values():
+                    if item_name in sub_item.syns:
+                        tmp_items.append(sub_item)
 
         # Return false if nothing was found
         if len(tmp_items) == 0:

@@ -1,19 +1,15 @@
-import time
+import time, sys
 from classes.parser import regex_imperative
 from classes.handlers import route_imperative
 from classes.context import gen_context
 from website_utils.utils import my_print, my_input, server_context
 
 
-context = gen_context()
+context = gen_context(sys.argv[1])
 
 
 # Meant for playing on console - really just to easily design & debug
 def local_game():
-    # Heavy status here
-    if "heavy" in context.player.status:
-        time.sleep(1)
-
     context.map[context.current_loc].print_surroundings()
 
     # Game loop

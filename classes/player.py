@@ -10,6 +10,7 @@ class Player:
         self.injured = False
         self.inv = Inventory(100)
         self.status = []
+        self.classname = "player"
 
 
 class Equipment(Item):

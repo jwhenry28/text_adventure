@@ -65,18 +65,18 @@ def get_prep(string):
         return 'an'
     return 'a'
 
-
 nounless_verbs = ["look"]
 directions = ["n", "s", "e", "w", "ne", "nw", "se", "sw", "u", "d",
               "north", "south", "east", "west", "northeast", "northwest", "southeast", "southwest", "up", "down"]
 verbs = ["go", "take", "drop", "kill", "open", "close", "look", "observe", "insert", "put", "place", "break", "chop",
-         "destroy", "equip", "examine", "read"]
+         "destroy", "equip", "examine", "read", "fill", "pour", "empty"]
 nouns = ["north", "south", "east", "west", "northeast", "northwest", "southeast", "southwest", "n", "s", "e", "w", "ne",
          "nw", "se", "sw", "u", "d", "up", "down", "ax", "axe", "key", "keys", "troll", "door", "crowbar", "all",
          "sword", "bottle", "lunchbox", "lunch", "box", "fireplace", "vault", "keyhole", "lock", "tome", "book",
-         "manuscript", "dequip", "closet"]
-adjectives = ["jade", "small", "copper", "rusty", "crystal", "red", "green", "wooden", "black", "white", "odd",
-              "farmhouse"]
+         "manuscript", "dequip", "closet", "poppies", "flowers", "flower", "plant", "mushroom", "fungus", "shroom",
+         "shrooms", "bucket", "sap", "honey", "syrup"]
+adjectives = ["jade", "small", "copper", "rusty", "crystal", "red", "green", "blue", "wooden", "black", "white", "odd",
+              "farmhouse", "metal", "golden", "sweet"]
 conjunctions = ["and"]
 prepositions = ["with", "on", "but", "in", "into"]
 

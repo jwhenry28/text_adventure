@@ -11,7 +11,7 @@ EMPTY_IMP = Imperative()
 
 
 class Context:
-    def __init__(self, player, map):
+    def __init__(self, player, map, type):
         self.player = player
         self.current_loc = "cornfield south"
         self.map = map
@@ -21,8 +21,13 @@ class Context:
         self.ido = []
         self.tmp_items = []
         self.mode = 'do'
+        self.all = False
         self.orig_imp = EMPTY_IMP
         self.limbo = None
+        if type != "local" and type != "server":
+            my_print("err", "context.init: invalid type", type, "given.")
+        else:
+            self.type = type
 
     def toggle_mode(self):
         if self.mode == 'do':
@@ -36,6 +41,7 @@ class Context:
         self.tmp_items = []
         self.mode = 'do'
         self.orig_imp = EMPTY_IMP
+        self.all = False
 
     def print(self):
         print("\nLOCATION       : " + self.current_loc)
@@ -69,6 +75,7 @@ class Context:
 
         # If all keyword specified, searching all relevant items
         if imp_ob[0][0] == 'all':
+            self.all = True
             if 'obstacles' not in dont_search:
                 for key in curr_loc.obstacles:
                     object_location.append(curr_loc.obstacles[key])
@@ -78,6 +85,8 @@ class Context:
             if 'inventory' not in dont_search:
                 for key in self.player.inv.item_map:
                     object_location.append(self.player.inv.item_map[key])
+            if not object_location:
+                my_print("des", "You see nothing.")
             return
 
         # First search location for obstacles
@@ -123,6 +132,11 @@ def library_tome_func(imp, context):
     else:
         my_print("des", "You open the tome to reveal pages of sanskrit writing. Having already read through the book" +
                  " once, you learn nothing new.")
+
+
+def poppies_take_func(imp, context):
+    graveyard = context.map["graveyard"]
+    graveyard.des = "This is a small graveyard. Roughly a dozen or two tombstombs hold a silent vigil over the hallowed ground. Most of their inscriptions are too old to read, but you can make out the writing on one of them. This is a place of calm. Dirt tire tracks lead off to the west. A trail runs to the north."
 
 
 # Obstacle functions
@@ -172,9 +186,11 @@ def hunting_closet_door_func(imp, context):
     door = kitchen.obstacles["hunting closet door"]
 
     iron_boots = context.limbo.inv.item_map['iron boots']
+    iron_boots.container
 
     if door.status:
-        if "taken" not in iron_boots.traits:
+        if "spawned" not in iron_boots.traits:
+            iron_boots.traits.append("spawned")
             my_print("des", "You swing the door open revealing a small equipment closet. An iron pair of boots are in the closet. They look heavy enough to hold someone down against considerable force.")
             kitchen.inv.add_item(iron_boots)
         else:
@@ -257,11 +273,19 @@ def iron_boots_func(imp, context):
         my_print("des", "You feel a tremendous weight lifted from your feet. Oh right - you were wearing boots of solid iron...")
 
 
-# def kitchen_lunchbox_func(imp, context):
-#     kitchen = context.map["kitchen"]
-#     lunchbox = kitchen.inv.item_map["lunchbox"]
-#
-#     if lunchbox.closed:
+def kitchen_lunchbox_func(imp, context):
+    lunchbox = context.limbo.inv.item_map['lunchbox']
+
+    if imp.verb == 'open':
+        lunchbox.closed = False
+        my_print("des", "You open the lunchbox.")
+    elif imp.verb == 'close':
+        lunchbox.closed = True
+        my_print("des", "You close the lunchbox, securely tightening the latch.")
+    else:
+        my_print("err", "kitchen_lunchbox_func: invalid verb given")
+        imp.print()
+
 
 # Vault functions
 def fireplace_vault_func(imp, context):
@@ -273,6 +297,7 @@ def fireplace_vault_func(imp, context):
             return
         fireplace.inv.add_item(context.do[0])
         context.player.inv.remove_item(context.do[0])
+        context.do[0].container = fireplace
         my_print("des", "The " + context.do[0].name + " clicks into place nicely.")
 
         if 'copper key' in fireplace.inv.item_map and \
@@ -293,10 +318,39 @@ def fireplace_vault_func(imp, context):
                 fireplace.closed = True
 
 
-def gen_context():
+def liquid_bucket_func(imp, context):
+    if imp.verb == "fill":
+        if not context.ido:
+            my_print("des", "You must fill the " + context.do[0].type + " up with something.")
+            return
+
+        if context.do[0].classname == "container":
+            bucket = context.do[0]
+            liquid = context.ido[0]
+        elif context.ido[0].classname == "container":
+            bucket = context.ido[0]
+            liquid = context.do[0]
+
+        if liquid.classname != "item":
+            my_print("des", "You can't fill the " + bucket.type + " up with that.")
+        elif bucket.type != "bucket":
+            my_print("des", "It's best not to put that in there.")
+        elif "liquid" not in liquid.traits:
+            my_print("des", "You can't fill the " + bucket.type + " up with that.")
+        elif bucket.inv.weight > 0:
+            my_print("des", "You should empty the " + bucket.type + " first.")
+        else:
+            bucket.inv.add_item(liquid)
+            liquid.container = bucket
+
+
+def gen_context(type):
     # Items and inventories
     axe = Item("wood ax", "ax", "A gleaming wood ax", 20, syns=["ax", "axe"], traits=["break"])
-    barn_inv = Inventory(100000, [axe])
+    bucket = Container("rusty bucket", "bucket", "A rusty metal bucket", 6, Inventory(10),
+                       closable=False, syns=["bucket"], adjs=["rusty", "metal"], verbs=["fill", "pour"],
+                       funcs={"fill": liquid_bucket_func, "pour": liquid_bucket_func, "empty": liquid_bucket_func})
+    barn_inv = Inventory(100000, [axe, bucket])
 
     copper_key = Item("copper key", "copper key", "A tarnished copper key", 1, syns=["key"], adjs=["copper", "red"])
     jade_key = Item("jade key", "jade key", "A vibrant jade key", 1, syns=["key"], adjs=["jade", "green"])
@@ -304,13 +358,23 @@ def gen_context():
     keyring = Inventory(100000, [copper_key, jade_key, crystal_key])
 
     bottle = Item("bottle", "bottle", "A clear glass soda bottle", 1, syns=["bottle"], adjs=["glass", "clear"])
-    lunchbox = Container("lunchbox", "lunchbox", "A vintage metal lunchbox", 2, syns=["lunchbox", "box"],
-                    adjs=["vintage", "metal"], verbs=["open", "close"])
+    lunchbox = Container("lunchbox", "lunchbox", "A vintage metal lunchbox", 2, Inventory(10),
+                         syns=["lunchbox", "box"], adjs=["vintage", "metal"], verbs=["open", "close"],
+                         funcs={"open": kitchen_lunchbox_func, "close": kitchen_lunchbox_func})
     kitchen_inv = Inventory(100000, [bottle, lunchbox])
 
     tome = Item("tome", "tome", "An ancient tome", 5, syns=["tome", "book", "manuscript"], adjs=["old", "ancient"],
                 traits=["readable"], item_func=library_tome_func)
     library_inv = Inventory(100000, [tome])
+
+    honey_sap = Item("sap", "sap", "Sticky sweet sap", 1, hidden=True, syns=["sap", "honey", "syrup"], adjs=["golden", "sweet"],
+                     traits=["liquid"])
+    homestead_inv = Inventory(100000, [honey_sap])
+
+    poppies = Item("poppies", "flower", "Bright red poppies", 1, take_func=poppies_take_func, syns=["poppies", "flowers", "flower", "plant"], adjs=["red"])
+    glowshroom = Item("glowshroom", "mushroom", "A softly glowing blue mushroom", 1, syns=["mushroom", "fungus", "shroom"], adjs=["glowing", "blue"])
+    graveyard_inv = Inventory(100000, [poppies])
+    grotto_inv = Inventory(100000, [glowshroom])
 
     # Obstacles
     farmhousew_door = Obstacle("farmhouse west door", "farmhouse door", "A sturdy looking door, painted black", 101,
@@ -343,7 +407,7 @@ def gen_context():
                          can_remove=False)
 
     # Limbo is used to "store" items which are not initially anywhere on the map but are made accessible by later events
-    limbo_inv = Inventory(100000, [iron_boots])
+    limbo_inv = Inventory(100000, [iron_boots, lunchbox])
     limbo = Location("limbo", "Limbo", limbo_inv, "You are in limbo. You really shouldn't be here...")
 
     # Locations
@@ -422,14 +486,14 @@ def gen_context():
     flooded_passage = Location("flooded passage", "Cave Passage", Inventory(100000),
                                "This is a narrow cave passage going northeast to southwest. The passage is totally submerged, but it's wide enough for you to swim through.",
                                sw="cave", ne="grotto")
-    grotto = Location("grotto", "Hidden Grotto", Inventory(100000),
+    grotto = Location("grotto", "Hidden Grotto", grotto_inv,
                       "You appear to be in a hidden underground grotto. A faint light comes from a variety of phosphorescent algae and fungi growing about the space. A deep pool lies in the center of the grotto. Several large rocks bear primitive inscriptions on them, but you are unable to decipher their meaning.",
                       sw="flooded passage")
     hayfield = Location("hay field", "Field of Hay", Inventory(100000),
                         "This is an expansive field of hay. It has clearly been some time since the last harvest. A trail runs off to the north and south. You can see a gravel path at the edge of the field to the west.",
                         n="south farmhouse", s="graveyard", w="vineyard east")
-    graveyard = Location("graveyard", "Graveyard", Inventory(100000),
-                         "This is a small graveyard. Roughly a dozen or two tombstombs hold a silent vigil over the hallowed ground. Most of their inscriptions are too old to read, but you can make out the writing on one of them. Dirt tire tracks lead off to the west. A trail runs to the north.",
+    graveyard = Location("graveyard", "Graveyard", graveyard_inv,
+                         "This is a small graveyard. Roughly a dozen or two tombstombs hold a silent vigil over the hallowed ground. Most of their inscriptions are too old to read, but you can make out the writing on one of them. A small bunch of fresh red flowers have been placed in front of another tombstone. This is a place of calm. Dirt tire tracks lead off to the west. A trail runs to the north.",
                          n="hay field", w="tire tracks1")
     tires1 = Location("tire tracks1", "Tire Tracks", Inventory(100000),
                       "This is a set of tire tracks, likely from a moderately sized ATV. They run to the east and the west. You are now surrounded in a thick forest.",
@@ -451,8 +515,8 @@ def gen_context():
     tower_laboratory = Location("tower laboratory", "Tower Laboratory", Inventory(100000),
                                 "This is an alchemy lab. Unlike the rest of the tower, this lab is not quite so bare. Some kind of glass instrument is assembled on the main table. A thick iron cauldron sits in the corner. A ladder leads to the library below.",
                                 down="tower study")
-    homestead = Location("homestead", "Homestead", Inventory(100000),
-                         "This is a derelict homestead. At one point it time, it may have been a comfortable frontier home. Now it is barely recognizible. The path continues to the southwest and to the southeast.",
+    homestead = Location("homestead", "Homestead", homestead_inv,
+                         "This is a derelict homestead. At one point it time, it may have been a comfortable frontier home. Now it is barely recognizible. Sap oozes out of a nearby maple tree. The path continues to the southwest and to the southeast.",
                          se=BLOCKED, w=BLOCKED, ob_messages={"southeast": "The current is too strong.", "west": "The current is too strong."})
     well = Location("water well", "Water Well", Inventory(100000),
                     "This is a natural wellspring. Several wild cows drinking at the spring block your way to the water. The path continues to the northeast and northwest.",
@@ -494,7 +558,7 @@ def gen_context():
 
     player = Player()
 
-    context = Context(player, map)
+    context = Context(player, map, type)
     context.limbo = limbo
 
     return context
