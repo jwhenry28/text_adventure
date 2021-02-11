@@ -20,7 +20,6 @@ def home():
 @app.route('/game', methods=['GET', 'POST'])
 def game():
     if request.method == 'POST' and request.form:
-        print('POST', request.form['input'])
         server_context.append_to_history('input', request.form['input'])
         server_context.set_message(request.form['input'])
 

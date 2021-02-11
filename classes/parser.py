@@ -74,7 +74,7 @@ nouns = ["north", "south", "east", "west", "northeast", "northwest", "southeast"
          "nw", "se", "sw", "u", "d", "up", "down", "ax", "axe", "key", "keys", "troll", "door", "crowbar", "all",
          "sword", "bottle", "lunchbox", "lunch", "box", "fireplace", "vault", "keyhole", "lock", "tome", "book",
          "manuscript", "dequip", "closet", "poppies", "flowers", "flower", "plant", "mushroom", "fungus", "shroom",
-         "shrooms", "bucket", "sap", "honey", "syrup"]
+         "shrooms", "bucket", "sap", "honey", "syrup", "paper", "recipe", "note"]
 adjectives = ["jade", "small", "copper", "rusty", "crystal", "red", "green", "blue", "wooden", "black", "white", "odd",
               "farmhouse", "metal", "golden", "sweet"]
 conjunctions = ["and"]

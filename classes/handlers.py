@@ -68,7 +68,8 @@ def move_handler(imp, context):
             my_print("des", "You struggle to move with the heavy load...")
             if context.type == "server":
                 server_context.html_barrier.wait()
-            time.sleep(1)
+            else:
+                time.sleep(1)
 
         context.map[new_loc].print_surroundings()
 MoveHandler = VerbFunction("move_handler", move_handler, False, False, do_missing="Where")

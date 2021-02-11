@@ -165,12 +165,15 @@ def farmhousew_door_func(imp, context):
 def farmhousee_door_func(imp, context):
     fireroom = context.map["fire room"]
     front_yard = context.map["front yard"]
+    kitchen = context.map["kitchen"]
     door = fireroom.obstacles["farmhouse east door"]
     if door.status:
         my_print("des", "You swing the door open.")
         fireroom.e = "front yard"
         front_yard.w = "fire room"
         door.status = False
+        kitchen.des = "You are in a dusty but tidy kitchen. Several large cupboards line the walls. A half-played boardgame lies abandoned on a large wooden table. Behind the table is a closet. There is an ornately furnished living room to the east. A red door to the west opens out behind the farmhouse.",
+
     else:
         if imp.verb == 'slam':
             my_print("des", "You slam the door shut. Jeez, be gentle...")
@@ -179,6 +182,8 @@ def farmhousee_door_func(imp, context):
         fireroom.e = BLOCKED
         front_yard.w = BLOCKED
         door.status = True
+        kitchen.des = "You are in a dusty but tidy kitchen. Several large cupboards line the walls. A half-played boardgame lies abandoned on a large wooden table. Behind the table is a closet. There is an ornately furnished living room to the east. There is a closed red door along the west wall.",
+
 
 
 def hunting_closet_door_func(imp, context):
@@ -363,9 +368,13 @@ def gen_context(type):
                          funcs={"open": kitchen_lunchbox_func, "close": kitchen_lunchbox_func})
     kitchen_inv = Inventory(100000, [bottle, lunchbox])
 
-    tome = Item("tome", "tome", "An ancient tome", 5, syns=["tome", "book", "manuscript"], adjs=["old", "ancient"],
-                traits=["readable"], item_func=library_tome_func)
+    tome = Item("tome", "tome", "This is a very old book, coated with dust. You can't read anything on the cover.", 5, syns=["tome", "book", "manuscript"], adjs=["old", "ancient"],
+                short_des="An ancient tome", traits=["readable"], item_func=library_tome_func)
     library_inv = Inventory(100000, [tome])
+
+    recipe = Item("recipe", "note", "The note is covered in someone's scrawling shorthand. It's far too messy to read with certainty, but you think you can make out the following:\nLiquid Stre#%\n   red from gr--##__\n   _-* from homest-__\n   f-*-i from the cave\nStronger than ten men!",
+                  1, syns=["recipe", "note"], adjs=["small"], short_des="A small parchment note")
+    laboratory_inv = Inventory(100000, [recipe])
 
     honey_sap = Item("sap", "sap", "Sticky sweet sap", 1, hidden=True, syns=["sap", "honey", "syrup"], adjs=["golden", "sweet"],
                      traits=["liquid"])
@@ -417,12 +426,12 @@ def gen_context(type):
     cornfield2 = Location("cornfield north", "Cornfield North", Inventory(100000),
                           "This is a musty cornfield, full of dusty dead stalks. It continues to the south. A small river lies to the north.",
                           n="river cross1", s="cornfield south")
-    river1 = Location("river cross1", "River Crossing", Inventory(100000),
+    river1 = Location("river cross1", "River Crossing South", Inventory(100000),
                      "This is a river, swift and strong. The path runs through the river northwest to south. It looks shallow enough to wade through, but the current would surely sweep you off your feet.",
-                     s="cornfield north", nw=BLOCKED, ob_messages={"northwest": "The current is too strong."})
-    river2 = Location("river cross2", "River Crossing", Inventory(100000),
+                     s="cornfield north", nw=BLOCKED, ob_messages={"northwest": "You try, but the current is too strong."})
+    river2 = Location("river cross2", "River Crossing West", Inventory(100000),
                       "This is a river, swift and strong. The path runs to the east on one side of the river and to the southwest on the other. It looks shallow enough to wade through, but the current would surely sweep you off your feet.",
-                      sw="water well", e=BLOCKED, ob_messages={"east": "The current is too strong."})
+                      sw="water well", e=BLOCKED, ob_messages={"east": "You try, but the current is too strong."})
     silos = Location("silos", "Twin Silos", Inventory(100000),
                      "Two massive silos stand defiant against the surrounding terrain. A large barn sits to the west. A small farmhouse to the south is nearly obscured by their massive stature. A deteriorating ladder is bolted to the side of one, if only there were a better way up...",
                      n="cornfield south", s="farmhouse west", w="barn", se="front yard")
@@ -442,7 +451,7 @@ def gen_context(type):
                           "You are facing the south side of a beautiful farmhouse. A small toolshed is next to a large gas tanker, but they both appear to be empty.",
                           s="hay field", w="farmhouse west", e="front yard")
     kitchen = Location("kitchen", "Kitchen", kitchen_inv,
-                       "You are in a dusty but tidy kitchen. Several large cupboards line the walls. A half-played boardgame lies abandoned on a large wooden table. A doorway into an ornately furnished living room. On the southern wall is a door to outside. ",
+                       "You are in a dusty but tidy kitchen. Several large cupboards line the walls. A half-played boardgame lies abandoned on a large wooden table. Behind the table is a closet. There is an ornately furnished living room to the east. A red door to the west opens out behind the farmhouse.",
                        e="fire room", w=BLOCKED,
                        obstacles={farmhousew_door.name: farmhousew_door, hunting_closet_door.name: hunting_closet_door}, ob_messages={"west": "The door is closed."})
     fireroom = Location("fire room", "Living Room", Inventory(100000),
@@ -512,12 +521,12 @@ def gen_context(type):
     tower_study = Location("tower study", "Tower Study", Inventory(100000),
                            "This is a well-used study, just as ransacked as the library below. You can see the library below you through the hatch. The ladder continues upwards.",
                            up="tower laboratory", down="tower library")
-    tower_laboratory = Location("tower laboratory", "Tower Laboratory", Inventory(100000),
-                                "This is an alchemy lab. Unlike the rest of the tower, this lab is not quite so bare. Some kind of glass instrument is assembled on the main table. A thick iron cauldron sits in the corner. A ladder leads to the library below.",
+    tower_laboratory = Location("tower laboratory", "Tower Laboratory", laboratory_inv,
+                                "This is an alchemy lab. Unlike the rest of the tower, this lab is not quite so bare. Some kind of glass instrument is assembled on the main table next to a small piece of paper with some writing on it. A thick iron cauldron sits in the corner. A ladder leads to the library below.",
                                 down="tower study")
     homestead = Location("homestead", "Homestead", homestead_inv,
                          "This is a derelict homestead. At one point it time, it may have been a comfortable frontier home. Now it is barely recognizible. Sap oozes out of a nearby maple tree. The path continues to the southwest and to the southeast.",
-                         se=BLOCKED, w=BLOCKED, ob_messages={"southeast": "The current is too strong.", "west": "The current is too strong."})
+                         se=BLOCKED, w=BLOCKED, ob_messages={"southeast": "You try, but the current is too strong.", "west": "You try, but the current is too strong."})
     well = Location("water well", "Water Well", Inventory(100000),
                     "This is a natural wellspring. Several wild cows drinking at the spring block your way to the water. The path continues to the northeast and northwest.",
                     ne="river cross2", nw="turkey blind")

@@ -1,0 +1,85 @@
+=========================================================
+Key/Legend
+
+Location Name (*** indicates actively unfinished)
+Description/significance
+N: north location
+S: south location
+etc
+=========================================================
+
+
+
+
+Cornfield South
+Of no importance currently, only serves to fill in the scenery.
+N: Cornfield North
+S: Twin Silos
+
+
+Cornfield North
+Of no importance currently, only serves to fill in the scenery.
+N: River Crossing
+S: Cornfield South
+
+
+River Crossing South
+Serves as an obstacle until the player has acquired the iron boots,
+which weigh them down enough to be able to wade through the swift
+current and reach the homestead from the southeast.
+NW: Homestead (initially blocked)
+S: Cornfield North
+
+
+River Crossing West
+Serves as an obstacle until the player has acquired the iron boots,
+which weigh them down enough to be able to wade through the swift
+current and reach the homestead from the west.
+E: Homestead (initially blocked)
+SW: Water Well
+
+
+Twin Silos***
+Currently does nothing. Planning on having some way to repair
+the rusted ladder and then have some kind of treasure on top
+of the silos, but that isn't implemented yet.
+N: Cornfield South
+E: West of Farmhouse
+W: Old Barn
+SE: Front Yard
+
+
+Old Barn
+Holds the wood ax and the metal bucket. The ax may be used to
+destroy several obstacles throughout the map. The bucket may
+be used to carry additional items. The path to the workshop is
+initially blocked with a locked but fragile wooden door which may
+be broken down with the ax.
+E: Twin Silos
+S: Workshop (initially blocked)
+NW: Frog Pond
+
+
+
+
+
+
+MORE DOWN, TRYING TO KEEP THINGS RELATIVELY IN ORDER
+
+
+
+
+
+
+
+
+
+Tower Laboratory***
+The tower library is currently mostly empty. I want there
+to be a recipe for some kind of potion that is useful later.
+Perhaps an acid to melt through a chain, or a potion of strength
+to scale an impossible height/lift a really heavy weight.
+
+Currently the recipe hints at a potion of strength, but I am
+liking the idea of an acid. Maybe both?
+D: Tower Study

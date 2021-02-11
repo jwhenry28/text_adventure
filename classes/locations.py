@@ -195,7 +195,7 @@ class Location:
                 my_print("des", "There is:")
                 for object in self.inv.item_map.values():
                     if not object.hidden:
-                        my_print("des", object.des)
+                        my_print("des", object.short_des)
                         if object.classname == 'container':
                             if object.inv.item_map and not object.closed:
                                 my_print("des", "The " + object.type + " contains:")
